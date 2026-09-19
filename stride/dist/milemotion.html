@@ -1,0 +1,2758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="MileMotion â€” turn your runs into shareable art. Concept interface, mock data." />
+  <title>MileMotion â€” Your Run. Your Story.</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMwNTA1MDUiLz4KICA8cGF0aCBkPSJNMjAgNDggTDM0IDE2IiBzdHJva2U9IiNGMkYyRjAiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIvPgogIDxwYXRoIGQ9Ik0zMiA0OCBMNDYgMTYiIHN0cm9rZT0iI0NERkY1NyIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIi8+Cjwvc3ZnPgo=" />
+  <meta name="theme-color" content="#050505" />
+  <meta property="og:title" content="MileMotion â€” Your Run. Your Story." />
+  <meta property="og:description" content="Turn any run into a poster worth sharing. Live concept demo." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+/* ============================================================
+   STRIDE â€” running art creator Â· concept UI
+   Layout â†’ chrome â†’ screens â†’ components â†’ artwork themes
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #050505;
+  --panel: #0b0b0b;
+  --raise: #121212;
+  --line: #1f1f1f;
+  --line-2: #2b2b2b;
+  --text: #f2f2f0;
+  --muted: #87878a;
+  --dim: #4c4c50;
+  --acc: #cdff57;
+
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-disp: "Anton", Impact, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --ease: cubic-bezier(0.22, 0.75, 0.25, 1);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(900px 520px at 50% -10%, rgba(205, 255, 87, 0.05), transparent 60%),
+    radial-gradient(700px 500px at 85% 110%, rgba(120, 160, 255, 0.04), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(75% 65% at 50% 42%, #000 30%, transparent 100%);
+  pointer-events: none;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input {
+  font-family: inherit;
+  color: inherit;
+}
+
+svg {
+  display: block;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+* {
+  scrollbar-width: none;
+}
+
+:focus-visible {
+  outline: 1px solid var(--acc);
+  outline-offset: 3px;
+}
+
+/* ---------- desktop stage chrome ---------- */
+
+.desk-brand {
+  position: fixed;
+  top: 22px;
+  left: 26px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  z-index: 5;
+}
+
+.desk-brand .mark {
+  width: 15px;
+  height: 15px;
+  stroke: #6a6a6e;
+  stroke-width: 3;
+  fill: none;
+}
+
+.desk-hint {
+  position: fixed;
+  bottom: 22px;
+  right: 26px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: #3b3b3e;
+  z-index: 5;
+}
+
+/* ---------- phone frame ---------- */
+
+.phone {
+  position: relative;
+  width: min(402px, 100vw);
+  height: min(874px, calc(100dvh - 40px));
+  background: #0a0a0a;
+  border: 1px solid #262626;
+  border-radius: 36px;
+  padding: 10px;
+  box-shadow:
+    0 60px 140px -40px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+.statusbar {
+  height: 34px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 0 22px;
+  user-select: none;
+}
+
+.sb-time {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.sb-icons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  opacity: 0.85;
+}
+
+.sb-icons svg {
+  height: 13px;
+  width: auto;
+  fill: currentColor;
+}
+
+.screens {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #1c1c1c;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.gesturebar {
+  flex: 0 0 auto;
+  height: 26px;
+  display: grid;
+  place-items: center;
+}
+
+.gesturebar::after {
+  content: "";
+  width: 108px;
+  height: 4px;
+  border-radius: 99px;
+  background: #2e2e30;
+}
+
+/* ---------- screens + transitions ---------- */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  opacity: 0;
+  transform: translateX(7%);
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 0.34s var(--ease),
+    transform 0.34s var(--ease),
+    visibility 0s linear 0.34s;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.screens[data-dir="back"] .screen {
+  transform: translateX(-7%);
+}
+
+.screen.active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  visibility: visible;
+  transition:
+    opacity 0.34s var(--ease),
+    transform 0.34s var(--ease),
+    visibility 0s;
+}
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: 0 0 auto;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text);
+  border-radius: 4px;
+}
+
+.tb-btn:active {
+  transform: scale(0.94);
+}
+
+.tb-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tb-title {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--text);
+}
+
+.tb-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  padding-right: 8px;
+}
+
+.tb-spacer {
+  width: 38px;
+}
+
+.tb-accent {
+  color: var(--acc);
+  border: 1px solid #2c3517;
+  height: 32px;
+  padding: 0 9px;
+  font-size: 9.5px;
+}
+
+.tb-accent:hover {
+  border-color: #4a5a24;
+}
+
+.tb-accent .ic {
+  width: 13px;
+  height: 13px;
+}
+
+.screen-kicker {
+  flex: 0 0 auto;
+  padding: 22px 22px 10px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+}
+
+.k-act {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--font-disp);
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 26px;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.24em;
+  text-indent: 0.24em;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
+}
+
+.btn:active {
+  transform: scale(0.975);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-solid {
+  background: var(--text);
+  color: #060606;
+}
+
+.btn-solid:hover {
+  background: var(--acc);
+}
+
+.btn-ghost {
+  border: 1px solid var(--line-2);
+  color: var(--text);
+}
+
+.btn-ghost:hover {
+  border-color: #4a4a4e;
+}
+
+.btn .ic {
+  width: 15px;
+  height: 15px;
+}
+
+/* ============================================================
+   HOME
+   ============================================================ */
+
+.scr-home {
+  padding: 24px;
+}
+
+.home-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.home-bg svg {
+  width: 100%;
+  height: 100%;
+}
+
+#homeTrail {
+  fill: none;
+  stroke: rgba(242, 242, 240, 0.14);
+  stroke-width: 0.45;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  animation: trailDraw 7.5s var(--ease) infinite;
+}
+
+@keyframes trailDraw {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  62% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  82%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+.home-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 0;
+}
+
+.home-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.home-logo .mark {
+  width: 44px;
+  height: 44px;
+  stroke: var(--text);
+  stroke-width: 2.6;
+  fill: none;
+}
+
+.wordmark {
+  font-family: var(--font-disp);
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-indent: 0.08em;
+  line-height: 1;
+}
+
+.home-tagline {
+  margin-top: 26px;
+  font-family: var(--font-disp);
+  font-size: 19px;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  line-height: 1.75;
+  color: #b9b9bc;
+}
+
+.home-sub {
+  margin-top: 16px;
+  font-size: 12.5px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.home-actions {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 12px;
+}
+
+.home-foot {
+  margin-top: 6px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  color: #3f3f43;
+}
+
+/* ============================================================
+   ACTIVITIES
+   ============================================================ */
+
+.act-list {
+  list-style: none;
+  padding: 0 22px 30px;
+}
+
+.act-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 19px 2px;
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.18s;
+}
+
+.act-list li:first-child .act-row {
+  border-top: 1px solid var(--line);
+}
+
+.act-row:hover {
+  background: #0a0a0a;
+}
+
+.act-row:active {
+  background: #0e0e0e;
+}
+
+.act-idx {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  align-self: start;
+  padding-top: 3px;
+}
+
+.act-name {
+  font-family: var(--font-disp);
+  font-size: 18.5px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+}
+
+.act-meta {
+  margin-top: 7px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.act-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.act-date {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+}
+
+.act-chev {
+  width: 14px;
+  height: 14px;
+  stroke: #3c3c40;
+  stroke-width: 2.4;
+  fill: none;
+}
+
+/* ============================================================
+   THEMES
+   ============================================================ */
+
+#screen-themes {
+  min-height: 0;
+}
+
+.theme-rail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 22px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+}
+
+.theme-card {
+  flex: 0 0 auto;
+  width: 174px;
+  scroll-snap-align: center;
+  text-align: left;
+}
+
+.theme-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--ease);
+}
+
+.theme-card:hover .theme-frame {
+  transform: translateY(-3px);
+}
+
+.theme-card.is-active .theme-frame {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 1px var(--acc), 0 18px 44px -18px rgba(205, 255, 87, 0.25);
+}
+
+.theme-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+}
+
+.theme-card.is-active .theme-label {
+  color: var(--text);
+}
+
+.theme-check {
+  width: 13px;
+  height: 13px;
+  display: none;
+  stroke: var(--acc);
+  stroke-width: 3;
+  fill: none;
+}
+
+.theme-card.is-active .theme-check {
+  display: block;
+}
+
+.rail-hint {
+  flex: 0 0 auto;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.3em;
+  color: #3d3d41;
+  padding-bottom: 14px;
+}
+
+.flow-cta {
+  flex: 0 0 auto;
+  padding: 16px 22px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+/* ============================================================
+   EDITOR
+   ============================================================ */
+
+#screen-editor {
+  overflow: hidden;
+}
+
+.editor-stagebox {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.editor-stage {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+}
+
+.toolbar {
+  flex: 0 0 auto;
+  height: 68px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line);
+  background: #070707;
+}
+
+.tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  position: relative;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+.tool svg {
+  width: 19px;
+  height: 19px;
+}
+
+.tool span {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+}
+
+.tool::after {
+  content: "";
+  position: absolute;
+  bottom: 9px;
+  width: 4px;
+  height: 4px;
+  background: transparent;
+  transition: background-color 0.2s;
+}
+
+.tool.is-active {
+  color: var(--text);
+}
+
+.tool.is-active::after {
+  background: var(--acc);
+}
+
+/* ============================================================
+   BOTTOM SHEET + PANELS
+   ============================================================ */
+
+.sheet-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+}
+
+.sheet-wrap[hidden],
+.genlay[hidden] {
+  display: none;
+}
+
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.28s;
+}
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--line-2);
+  border-radius: 14px 14px 0 0;
+  transform: translateY(102%);
+  transition: transform 0.34s var(--ease);
+  max-height: 64%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-wrap.open .sheet-scrim {
+  opacity: 1;
+}
+
+.sheet-wrap.open .sheet {
+  transform: none;
+}
+
+.sheet-grab {
+  flex: 0 0 auto;
+  padding: 10px 0 4px;
+  display: grid;
+  place-items: center;
+}
+
+.sheet-grab::after {
+  content: "";
+  width: 38px;
+  height: 4px;
+  border-radius: 99px;
+  background: #2c2c2e;
+}
+
+.sheet-body {
+  overflow-y: auto;
+  padding-bottom: 26px;
+}
+
+.panel {
+  padding: 4px 22px 0;
+}
+
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+  padding: 10px 0 4px;
+}
+
+.opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.opt-row:last-child {
+  border-bottom: 0;
+}
+
+.opt-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  color: #d6d6d8;
+}
+
+/* switch */
+
+.switch {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 24px;
+  border-radius: 99px;
+  border: 1px solid var(--line-2);
+  position: relative;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6f6f73;
+  transition: transform 0.22s var(--ease), background-color 0.2s;
+}
+
+.switch.is-on {
+  background: var(--acc);
+  border-color: var(--acc);
+}
+
+.switch.is-on::after {
+  transform: translateX(18px);
+  background: #0a0a0a;
+}
+
+/* segmented buttons (photo panel) */
+.seg-btn {
+  width: 100%;
+  padding: 14px 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  border: 1px solid var(--line-2);
+  transition: background-color 0.18s, color 0.18s;
+}
+
+.seg-btn.is-active {
+  background: var(--text);
+  color: #060606;
+}
+
+/* fields */
+
+.field {
+  display: block;
+  padding: 16px 0 6px;
+}
+
+.field span {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.28em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.field input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line-2);
+  padding: 9px 0 11px;
+  font-size: 16.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  border-radius: 0;
+}
+
+.field input:focus {
+  outline: none;
+  border-bottom-color: var(--acc);
+}
+
+.field input::placeholder {
+  color: #4a4a4e;
+  font-weight: 400;
+}
+
+.panel-note {
+  padding: 14px 0 0;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.2em;
+  color: #45454a;
+}
+
+/* style rail inside sheet */
+
+.style-rail {
+  display: flex;
+  gap: 12px;
+  padding: 14px 0 8px;
+  overflow-x: auto;
+}
+
+.style-card {
+  flex: 0 0 auto;
+  width: 106px;
+  text-align: left;
+}
+
+.style-frame {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border: 1px solid var(--line-2);
+  border-radius: 5px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.style-card.is-active .style-frame {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 1px var(--acc);
+}
+
+.style-name {
+  display: block;
+  margin-top: 9px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.style-card.is-active .style-name {
+  color: var(--text);
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+
+.ratio-seg {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 6px 22px 4px;
+}
+
+.ratio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 14px 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.ratio:hover {
+  border-color: var(--line-2);
+}
+
+.ratio.is-active {
+  border-color: #3a421f;
+  background: #0d0f07;
+}
+
+.ratio-shape {
+  width: 15px;
+  border: 1.5px solid currentColor;
+  color: var(--dim);
+  transition: color 0.2s;
+}
+
+.ratio.is-active .ratio-shape {
+  color: var(--acc);
+}
+
+.shape-story {
+  height: 27px;
+}
+
+.shape-portrait {
+  height: 20px;
+}
+
+.shape-square {
+  height: 15px;
+}
+
+.ratio strong {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--text);
+}
+
+.ratio em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+}
+
+.export-stagebox {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px 22px;
+}
+
+.export-stage {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 26px 70px -22px rgba(0, 0, 0, 0.88);
+  transition: width 0.4s var(--ease), height 0.4s var(--ease);
+}
+
+.export-foot {
+  flex: 0 0 auto;
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.btn-generate {
+  height: 58px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-generate::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -80%;
+  width: 45%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-20deg);
+  animation: sheen 3.4s var(--ease) infinite;
+}
+
+@keyframes sheen {
+  0%, 55% {
+    left: -80%;
+  }
+  85%, 100% {
+    left: 130%;
+  }
+}
+
+.export-note {
+  margin-top: 12px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.24em;
+  color: #3d3d41;
+}
+
+/* ---------- generate overlay ---------- */
+
+.genlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 2, 2, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.gen-card {
+  width: 84%;
+  background: #0a0a0a;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 30px 22px 24px;
+  text-align: center;
+}
+
+.gen-kicker {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.34em;
+  color: var(--acc);
+  margin-bottom: 14px;
+}
+
+.gen-step {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text);
+  margin-bottom: 22px;
+  min-height: 14px;
+}
+
+.gen-bar {
+  height: 3px;
+  background: #202020;
+  overflow: hidden;
+}
+
+.gen-bar span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--acc);
+  transition: width 0.45s var(--ease);
+}
+
+.gen-check {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 16px;
+  stroke: var(--acc);
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: checkDraw 0.6s var(--ease) forwards;
+}
+
+@keyframes checkDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.gen-preview-box {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 16px;
+}
+
+.gen-stage {
+  width: 96px;
+  aspect-ratio: 9 / 16;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gen-file {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 20px;
+  word-break: break-all;
+}
+
+.gen-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.gen-actions .btn {
+  height: 48px;
+  font-size: 10px;
+}
+
+.gen-close {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+  color: var(--muted);
+  padding: 8px 16px;
+}
+
+.gen-close:hover {
+  color: var(--text);
+}
+
+/* ---------- toast ---------- */
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 108px;
+  transform: translate(-50%, 14px);
+  z-index: 95;
+  background: #131313;
+  border: 1px solid var(--line-2);
+  padding: 12px 18px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  color: var(--text);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s, transform 0.26s var(--ease);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ============================================================
+   ARTWORK COMPONENT
+   Shared skeleton, skinned per theme with custom props.
+   Stages are containers; all type scales in cqw.
+   ============================================================ */
+
+.stage {
+  position: relative;
+  container-type: inline-size;
+}
+
+.art {
+  --a-bg: #000;
+  --a-fg: #fafafa;
+  --a-mut: rgba(250, 250, 250, 0.52);
+  --a-line: rgba(250, 250, 250, 0.2);
+  --a-acc: #fafafa;
+  --a-disp: var(--font-disp);
+
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--a-bg);
+  color: var(--a-fg);
+  font-family: var(--font-ui);
+  display: flex;
+  flex-direction: column;
+  padding: 8cqw;
+  overflow: hidden;
+  user-select: none;
+}
+
+.art-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.art-photo {
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9.5;
+  margin-bottom: 6cqw;
+  border: 1px dashed var(--a-line);
+  display: grid;
+  place-content: center;
+  gap: 2.6cqw;
+  justify-items: center;
+  color: var(--a-mut);
+}
+
+.art-photo.is-bottom {
+  margin-bottom: 0;
+  margin-top: 6cqw;
+}
+
+.art-photo svg {
+  width: 9cqw;
+  height: 9cqw;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.art-photo figcaption {
+  font-family: var(--font-mono);
+  font-size: 2.5cqw;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+}
+
+.art-head {
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.art-title {
+  font-family: var(--a-disp);
+  font-weight: 400;
+  font-size: 10.5cqw;
+  line-height: 1.02;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.art-sub {
+  margin-top: 2.6cqw;
+  font-family: var(--font-mono);
+  font-size: 2.7cqw;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--a-mut);
+}
+
+.art-hero {
+  flex: 0 0 auto;
+  position: relative;
+  padding: 6.5cqw 0 5.5cqw;
+}
+
+.art-hero-value {
+  font-family: var(--a-disp);
+  font-size: 29cqw;
+  line-height: 0.94;
+  letter-spacing: 0.01em;
+}
+
+.art-hero-unit {
+  font-family: var(--font-mono);
+  font-size: 6cqw;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--a-acc);
+}
+
+.art-stats {
+  flex: 0 0 auto;
+  list-style: none;
+  position: relative;
+}
+
+.art-stats li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4cqw;
+  padding: 2.9cqw 0;
+  border-top: 1px solid var(--a-line);
+}
+
+.art-stats .k {
+  font-family: var(--font-mono);
+  font-size: 2.6cqw;
+  letter-spacing: 0.3em;
+  color: var(--a-mut);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.art-stats .v {
+  font-size: 4.9cqw;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.art-stats .u {
+  font-size: 0.52em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--a-mut);
+  margin-left: 0.35em;
+}
+
+.art-route {
+  flex: 1 1 auto;
+  min-height: 14cqw;
+  margin: 3cqw 0;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.art-route path {
+  fill: none;
+  stroke: var(--a-acc);
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.art-route .rt-start,
+.art-route .rt-end {
+  fill: var(--a-bg);
+  stroke: var(--a-acc);
+  stroke-width: 2;
+}
+
+.art-foot {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4cqw;
+  padding-top: 3.4cqw;
+  border-top: 1px solid var(--a-line);
+}
+
+.art-brand {
+  display: flex;
+  align-items: center;
+  gap: 2.2cqw;
+  font-family: var(--font-mono);
+  font-size: 2.7cqw;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+}
+
+.art-brand .mark {
+  width: 4.4cqw;
+  height: 4.4cqw;
+  stroke: var(--a-acc);
+  stroke-width: 3.4;
+  fill: none;
+}
+
+.art-tag {
+  font-family: var(--font-mono);
+  font-size: 2.2cqw;
+  letter-spacing: 0.26em;
+  color: var(--a-mut);
+  white-space: nowrap;
+}
+
+/* ---------- THEME Â· B/W MOTION ---------- */
+
+.art.th-bw {
+  --a-bg: #000;
+  --a-fg: #fafafa;
+  --a-mut: rgba(250, 250, 250, 0.5);
+  --a-line: rgba(250, 250, 250, 0.22);
+  --a-acc: #fafafa;
+}
+
+.th-bw .art-decor .slash {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.07);
+  transform: rotate(-24deg);
+}
+
+.th-bw .art-decor .slash.s1 {
+  width: 46cqw;
+  height: 9cqw;
+  right: -12cqw;
+  top: 34%;
+}
+
+.th-bw .art-decor .slash.s2 {
+  width: 30cqw;
+  height: 6cqw;
+  right: 4cqw;
+  top: 42%;
+}
+
+.th-bw .art-hero-value {
+  transform: skewX(-5deg);
+  transform-origin: left bottom;
+}
+
+.th-bw .art-stats {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 4.5cqw;
+  row-gap: 1.5cqw;
+  border-top: 1px solid var(--a-line);
+  padding-top: 3.4cqw;
+}
+
+.th-bw .art-stats li {
+  border-top: 0;
+  padding: 0;
+  gap: 2cqw;
+}
+
+.th-bw .art-stats li + li {
+  position: relative;
+  padding-left: 4.5cqw;
+}
+
+.th-bw .art-stats li + li::before {
+  content: "/";
+  position: absolute;
+  left: 0;
+  color: var(--a-mut);
+  font-weight: 300;
+}
+
+.th-bw .art-stats .k {
+  order: 2;
+  font-size: 2.3cqw;
+}
+
+.th-bw .art-stats .v {
+  order: 1;
+  font-size: 4.6cqw;
+}
+
+.th-bw .art-route {
+  margin-block: 5cqw;
+}
+
+/* ---------- THEME Â· MIDNIGHT ---------- */
+
+.art.th-midnight {
+  --a-fg: #edf2ff;
+  --a-mut: rgba(237, 242, 255, 0.52);
+  --a-line: rgba(237, 242, 255, 0.16);
+  --a-acc: #9cc0ff;
+  background:
+    radial-gradient(120cqw 90cqw at 82% -6%, rgba(156, 192, 255, 0.16), transparent 60%),
+    linear-gradient(178deg, #090e22 0%, #0f1734 52%, #16224a 100%);
+}
+
+.th-midnight .art-stars {
+  position: absolute;
+  inset: 0;
+}
+
+.th-midnight .art-stars circle {
+  fill: #dbe6ff;
+}
+
+.th-midnight .art-stars .tw {
+  animation: starTwinkle 3.2s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+  0%, 100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.th-midnight .art-hero-value {
+  text-shadow: 0 0 24px rgba(156, 192, 255, 0.5);
+}
+
+.th-midnight .art-route {
+  filter: drop-shadow(0 0 5px rgba(156, 192, 255, 0.55));
+}
+
+/* ---------- THEME Â· BLUEPRINT ---------- */
+
+.art.th-blueprint {
+  --a-bg: #07293f;
+  --a-fg: #d9ebf7;
+  --a-mut: rgba(217, 235, 247, 0.55);
+  --a-line: rgba(143, 208, 255, 0.3);
+  --a-acc: #8fd0ff;
+  background:
+    linear-gradient(rgba(143, 208, 255, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143, 208, 255, 0.075) 1px, transparent 1px),
+    linear-gradient(rgba(143, 208, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143, 208, 255, 0.16) 1px, transparent 1px),
+    #07293f;
+  background-size: 6.25cqw 6.25cqw, 6.25cqw 6.25cqw, 12.5cqw 12.5cqw, 12.5cqw 12.5cqw;
+}
+
+.th-blueprint .art-decor .frame {
+  position: absolute;
+  inset: 3.4cqw;
+  border: 1px solid var(--a-line);
+}
+
+.th-blueprint .art-decor .frame::before,
+.th-blueprint .art-decor .frame::after {
+  content: "";
+  position: absolute;
+  background: var(--a-acc);
+}
+
+.th-blueprint .art-decor .frame::before {
+  left: 50%;
+  top: -1px;
+  width: 5cqw;
+  height: 1px;
+}
+
+.th-blueprint .art-decor .frame::after {
+  left: -1px;
+  bottom: 18%;
+  width: 1px;
+  height: 5cqw;
+}
+
+.th-blueprint .art-decor .coords {
+  position: absolute;
+  right: 6cqw;
+  top: 5.4cqw;
+  font-family: var(--font-mono);
+  font-size: 2.1cqw;
+  letter-spacing: 0.18em;
+  color: var(--a-mut);
+}
+
+.th-blueprint .art-title {
+  font-size: 9cqw;
+}
+
+.th-blueprint .art-sub {
+  color: var(--a-acc);
+}
+
+.th-blueprint .art-stats li {
+  border-top-style: dashed;
+}
+
+.th-blueprint .art-route path {
+  stroke-dasharray: 4.5 3;
+}
+
+/* ---------- THEME Â· MINIMAL ---------- */
+
+.art.th-minimal {
+  --a-bg: #f3f1ec;
+  --a-fg: #171512;
+  --a-mut: rgba(23, 21, 18, 0.46);
+  --a-line: rgba(23, 21, 18, 0.16);
+  --a-acc: #171512;
+  --a-disp: var(--font-ui);
+  padding: 9cqw;
+}
+
+.th-minimal .art-title {
+  font-weight: 800;
+  font-size: 8.4cqw;
+  letter-spacing: -0.015em;
+  line-height: 1.06;
+}
+
+.th-minimal .art-hero {
+  padding: 7cqw 0 5cqw;
+}
+
+.th-minimal .art-hero-value {
+  font-weight: 275;
+  font-size: 26cqw;
+  letter-spacing: -0.045em;
+}
+
+.th-minimal .art-hero-unit {
+  color: var(--a-mut);
+  font-weight: 600;
+}
+
+.th-minimal .art-stats .v {
+  font-weight: 550;
+}
+
+.th-minimal .art-route path {
+  stroke-width: 1.7;
+}
+
+/* ---------- THEME Â· TOPOGRAPHIC ---------- */
+
+.art.th-topo {
+  --a-bg: #101310;
+  --a-fg: #e9eee2;
+  --a-mut: rgba(233, 238, 226, 0.5);
+  --a-line: rgba(233, 238, 226, 0.16);
+  --a-acc: #b7c9a6;
+  background:
+    radial-gradient(30cqw 30cqw at 78% 14%, rgba(183, 201, 166, 0.14), transparent 60%),
+    radial-gradient(46cqw 46cqw at 70% 22%, rgba(183, 201, 166, 0.1), transparent 60%),
+    radial-gradient(62cqw 62cqw at 60% 34%, rgba(183, 201, 166, 0.07), transparent 60%),
+    radial-gradient(80cqw 80cqw at 50% 50%, rgba(183, 201, 166, 0.05), transparent 60%),
+    #101310;
+}
+
+.th-topo .art-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 5cqw;
+}
+
+.th-topo .art-stats li {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.8cqw;
+  padding: 2.6cqw 0 2.4cqw;
+}
+
+.th-topo .art-route path {
+  stroke-width: 2.6;
+}
+
+.th-topo .art-route .wp {
+  fill: var(--a-bg);
+  stroke: var(--a-acc);
+  stroke-width: 1.6;
+}
+
+/* ============================================================
+   RESPONSIVE â€” true mobile: fill viewport
+   ============================================================ */
+
+@media (max-width: 480px), (max-height: 720px) and (max-width: 900px) {
+  body {
+    display: block;
+  }
+
+  body::before,
+  .desk-brand,
+  .desk-hint {
+    display: none;
+  }
+
+  .phone {
+    width: 100%;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .statusbar {
+    height: auto;
+    padding: max(10px, env(safe-area-inset-top)) 18px 8px;
+  }
+
+  .screens {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .gesturebar {
+    height: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .toast {
+    bottom: 118px;
+  }
+}
+
+/* ---------- short viewports: shrink preview cards ---------- */
+
+@media (max-height: 780px) and (min-width: 481px) {
+  .theme-card {
+    width: 148px;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 481px) {
+  .theme-card {
+    width: 128px;
+  }
+
+  .editor-stagebox,
+  .export-stagebox {
+    padding: 12px;
+  }
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+</style>
+</head>
+<body>
+
+  <!-- Desktop stage chrome (hidden on small screens) -->
+  <div class="desk-brand" aria-hidden="true">
+    <svg viewBox="0 0 32 32" class="mark"><path d="M7 25 L17 7"/><path d="M15 25 L25 7"/></svg>
+    <span>MILEMOTION â€” CONCEPT UI Â· MOCK DATA</span>
+  </div>
+  <div class="desk-hint" aria-hidden="true">TAP THROUGH â€” HOME â†’ ACTIVITY â†’ THEME â†’ EDITOR â†’ EXPORT</div>
+
+  <!-- Phone -->
+  <div class="phone" id="phone">
+
+    <!-- Status bar -->
+    <div class="statusbar" aria-hidden="true">
+      <span class="sb-time" id="sbTime">9:41</span>
+      <span class="sb-icons">
+        <svg viewBox="0 0 24 24"><path d="M12 20h.01M2 8.8a16 16 0 0 1 20 0M5 12.5a11 11 0 0 1 14 0M8.5 16a6 6 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M2 20h3v-6H2zM8.7 20h3V9h-3zM15.4 20h3V4h-3z"/></svg>
+        <svg viewBox="0 0 28 24"><rect x="2" y="8" width="20" height="9" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4.4" y="10.4" width="12" height="4.2" rx="1"/><path d="M24.5 11v3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </span>
+    </div>
+
+    <!-- Screens -->
+    <main class="screens" id="screens" data-dir="fwd">
+
+      <!-- ============ HOME ============ -->
+      <section class="screen scr-home active" id="screen-home">
+        <div class="home-bg" aria-hidden="true">
+          <svg viewBox="0 0 100 200" preserveAspectRatio="xMidYMid slice">
+            <path id="homeTrail" d="" pathLength="100"/>
+          </svg>
+        </div>
+        <div class="home-center">
+          <div class="home-logo">
+            <svg viewBox="0 0 32 32" class="mark"><path d="M7 25 L17 7"/><path d="M15 25 L25 7"/></svg>
+            <h1 class="wordmark">MILEMOTION</h1>
+          </div>
+          <p class="home-tagline">YOUR RUN.<br/>YOUR STORY.</p>
+          <p class="home-sub">Turn any run into a poster worth sharing.</p>
+        </div>
+        <div class="home-actions">
+          <button class="btn btn-solid btn-block" id="btnConnect">
+            CONNECT STRAVA
+            <svg viewBox="0 0 24 24" class="ic"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+          </button>
+          <button class="btn btn-ghost btn-block" id="btnDemo">TRY DEMO</button>
+          <p class="home-foot">DEMO MODE Â· NO ACCOUNT NEEDED</p>
+        </div>
+      </section>
+
+      <!-- ============ ACTIVITIES ============ -->
+      <section class="screen" id="screen-activities">
+        <header class="topbar">
+          <button class="tb-btn nav-back" data-back aria-label="Back">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+          </button>
+          <span class="tb-title">ACTIVITIES</span>
+          <span class="tb-count" id="actCount">06</span>
+        </header>
+        <p class="screen-kicker">SELECT AN ACTIVITY</p>
+        <ul class="act-list" id="actList"></ul>
+      </section>
+
+      <!-- ============ THEMES ============ -->
+      <section class="screen" id="screen-themes">
+        <header class="topbar">
+          <button class="tb-btn nav-back" data-back aria-label="Back">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+          </button>
+          <span class="tb-title">THEME</span>
+          <span class="tb-spacer"></span>
+        </header>
+        <p class="screen-kicker">PICK A LOOK<span class="k-act" id="themeActName"></span></p>
+        <div class="theme-rail" id="themeRail"></div>
+        <p class="rail-hint">SWIPE â†’</p>
+        <div class="flow-cta">
+          <button class="btn btn-solid btn-block" id="btnToEditor">
+            OPEN IN EDITOR
+            <svg viewBox="0 0 24 24" class="ic"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ EDITOR ============ -->
+      <section class="screen" id="screen-editor">
+        <header class="topbar">
+          <button class="tb-btn nav-back" data-back aria-label="Back">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+          </button>
+          <span class="tb-title">EDITOR</span>
+          <button class="tb-btn tb-accent" id="btnEditorExport" aria-label="Export">
+            EXPORT
+            <svg viewBox="0 0 24 24" class="ic"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+          </button>
+        </header>
+        <div class="editor-stagebox" id="editorStageBox">
+          <div class="stage editor-stage" id="editorStage"><!-- artwork injected --></div>
+        </div>
+        <nav class="toolbar" id="toolbar" role="tablist" aria-label="Editor tools">
+          <button class="tool is-active" data-tool="stats" role="tab" aria-selected="true">
+            <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+            <span>STATS</span>
+          </button>
+          <button class="tool" data-tool="photo" role="tab" aria-selected="false">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10.5" r="1.6" fill="currentColor"/><path d="M3 17l5.5-5L14 17l3.5-3.5L21 17" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <span>PHOTO</span>
+          </button>
+          <button class="tool" data-tool="text" role="tab" aria-selected="false">
+            <svg viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+            <span>TEXT</span>
+          </button>
+          <button class="tool" data-tool="style" role="tab" aria-selected="false">
+            <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.8 2-1.8 0-.9-.6-1.4-.6-2.2 0-1 .8-1.8 2-1.8H17a4.5 4.5 0 0 0 4.5-4.5C21.5 6 17.2 3 12 3z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="10" r="1.3" fill="currentColor"/><circle cx="12" cy="7.5" r="1.3" fill="currentColor"/><circle cx="16" cy="9.5" r="1.3" fill="currentColor"/></svg>
+            <span>STYLE</span>
+          </button>
+        </nav>
+      </section>
+
+      <!-- ============ EXPORT ============ -->
+      <section class="screen" id="screen-export">
+        <header class="topbar">
+          <button class="tb-btn nav-back" data-back aria-label="Back">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+          </button>
+          <span class="tb-title">EXPORT</span>
+          <span class="tb-spacer"></span>
+        </header>
+        <p class="screen-kicker">CHOOSE FORMAT</p>
+        <div class="ratio-seg" id="ratioSeg" role="radiogroup" aria-label="Export format">
+          <button class="ratio is-active" data-ratio="story" role="radio" aria-checked="true">
+            <span class="ratio-shape shape-story" aria-hidden="true"></span>
+            <strong>STORY</strong>
+            <em>1080 Ã— 1920</em>
+          </button>
+          <button class="ratio" data-ratio="portrait" role="radio" aria-checked="false">
+            <span class="ratio-shape shape-portrait" aria-hidden="true"></span>
+            <strong>PORTRAIT</strong>
+            <em>1080 Ã— 1350</em>
+          </button>
+          <button class="ratio" data-ratio="square" role="radio" aria-checked="false">
+            <span class="ratio-shape shape-square" aria-hidden="true"></span>
+            <strong>SQUARE</strong>
+            <em>1080 Ã— 1080</em>
+          </button>
+        </div>
+        <div class="export-stagebox" id="exportStageBox">
+          <div class="stage export-stage" id="exportStage"><!-- artwork injected --></div>
+        </div>
+        <div class="export-foot">
+          <button class="btn btn-solid btn-block btn-generate" id="btnGenerate">
+            GENERATE &amp; SHARE
+          </button>
+          <p class="export-note" id="exportNote">RENDERS LOCALLY Â· NOTHING LEAVES YOUR DEVICE</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom sheet (editor panels) -->
+    <div class="sheet-wrap" id="sheetWrap" hidden>
+      <div class="sheet-scrim" id="sheetScrim"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Editor options">
+        <div class="sheet-grab" aria-hidden="true"></div>
+        <div class="sheet-body" id="sheetBody"><!-- panel injected --></div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" role="status"></div>
+
+    <!-- Generate overlay -->
+    <div class="genlay" id="genlay" hidden>
+      <div class="gen-card">
+        <div class="gen-phase gen-progress">
+          <p class="gen-kicker">RENDERING</p>
+          <p class="gen-step" id="genStep">RENDERINGâ€¦</p>
+          <div class="gen-bar"><span id="genBar"></span></div>
+        </div>
+        <div class="gen-phase gen-done" hidden>
+          <svg class="gen-check" viewBox="0 0 48 48"><path d="M10 25l10 10L38 14" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"/></svg>
+          <p class="gen-step">READY TO SHARE</p>
+          <div class="gen-preview-box"><div class="stage gen-stage" id="genStage"></div></div>
+          <p class="gen-file" id="genFile">stride-midnight-10km.png</p>
+          <div class="gen-actions">
+            <button class="btn btn-solid" id="btnSaveImg">SAVE IMAGE</button>
+            <button class="btn btn-ghost" id="btnShare">SHARE</button>
+          </div>
+          <button class="gen-close" id="btnGenClose">DONE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gesture bar -->
+    <div class="gesturebar" aria-hidden="true"></div>
+  </div>
+
+  <script>
+/*
+ * =====================================================================
+ *  data.js  â€”  the app's "database" (MOCK DATA only, no real backend)
+ * =====================================================================
+ *
+ *  WHAT THIS FILE IS FOR
+ *  ---------------------
+ *  MarkingMotion builds a poster from one "activity" (a run). Right now
+ *  there is no Strava login yet, so we ship 6 sample runs you can pick
+ *  from. Later you can swap `activities` for real data returned by the
+ *  Strava API â€” the rest of the code does not care where the numbers
+ *  come from.
+ *
+ *  HOW TO READ IT
+ *  --------------
+ *  - ACTIVITIES  : one entry per run. Only raw numbers are stored.
+ *  - themes      : the 5 visual styles, each with a CSS class name.
+ *  - RATIOS      : the 3 export sizes (width x height in pixels).
+ *  - STAT_META   : which stats exist and what label/order to show them.
+ *
+ *  The `window.STRIDE = {...}` line at the bottom is the ONLY thing
+ *  other files can see. Everything else stays private to this file.
+ * =====================================================================
+ */
+
+/* ---------------------------------------------------------------------
+ * 1. RAW mock runs (the numbers a Strava activity would give us)
+ *    NOTE: time is stored in SECONDS, distance in KILOMETERS.
+ * ------------------------------------------------------------------- */
+const RAW_RUNS = [
+  { id: "a1", name: "MORNING RUN",   place: "RIVERFRONT LOOP",      date: "24 AUG", km: 10.01, sec: 2717, elev: 112, kcal: 784, hr: 158 },
+  { id: "a2", name: "TEMPO TUESDAY", place: "LAKESIDE PARK",        date: "21 AUG", km: 8.05,  sec: 2282, elev: 86,  kcal: 611, hr: 167 },
+  { id: "a3", name: "LONG RUN",      place: "COUNTRYSIDE TRAIL",    date: "17 AUG", km: 21.4,  sec: 6740, elev: 230, kcal: 1620, hr: 149 },
+  { id: "a4", name: "INTERVALS",     place: "CITY STADIUM",         date: "14 AUG", km: 6.2,   sec: 1798, elev: 12,  kcal: 486, hr: 171 },
+  { id: "a5", name: "EASY RUN",      place: "CITY STREETS",         date: "12 AUG", km: 5.03,  sec: 1845, elev: 34,  kcal: 398, hr: 132 },
+  { id: "a6", name: "HILL REPEATS",  place: "RIDGE ROUTE",          date: "09 AUG", km: 7.7,   sec: 2480, elev: 310, kcal: 702, hr: 162 }
+];
+
+/* ---------------------------------------------------------------------
+ * 2. Tiny helpers to format numbers into the way runners read them
+ *    e.g. 2717 seconds -> "45:17"   |   10.01 km -> "10.01"
+ * ------------------------------------------------------------------- */
+const pad = n => String(n).padStart(2, "0");
+const fmt = {
+  time: s => { const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`; },
+  pace: s => `${Math.floor(s / 60)}:${pad(Math.round(s % 60))}`,
+  dist: k => k.toFixed(2)
+};
+
+/* ---------------------------------------------------------------------
+ * 3. Build the full activity objects the rest of the app uses.
+ *    Every activity ends up with a `stats` object shaped like:
+ *        stats = { distance:{value,unit}, time:{...}, ... }
+ *    That predictable shape is what the poster renderers read.
+ * ------------------------------------------------------------------- */
+const activities = RAW_RUNS.map(r => ({
+  id: r.id,
+  name: r.name,
+  place: r.place,
+  date: r.date,
+  stats: {
+    distance: { value: fmt.dist(r.km),  unit: "KM" },
+    time:     { value: fmt.time(r.sec), unit: "" },
+    pace:     { value: fmt.pace(r.sec / r.km), unit: "/KM" },
+    elevation:{ value: String(r.elev), unit: "M" },
+    calories: { value: String(r.kcal), unit: "KCAL" },
+    hr:       { value: String(r.hr),   unit: "BPM" }
+  }
+}));
+
+/* ---------------------------------------------------------------------
+ * 4. Stat metadata: label + the order they appear on the poster.
+ * ------------------------------------------------------------------- */
+const STAT_META = [
+  { key: "distance",  label: "DISTANCE" },
+  { key: "time",      label: "TIME" },
+  { key: "pace",      label: "AVG PACE" },
+  { key: "elevation", label: "ELEVATION" },
+  { key: "calories",  label: "CALORIES" },
+  { key: "hr",        label: "AVG HEART RATE" }
+];
+
+/* ---------------------------------------------------------------------
+ * 5. Themes â€” each maps to a `.th-*` CSS class that draws the artwork.
+ * ------------------------------------------------------------------- */
+const themes = {
+  "bw-motion":   { label: "B/W MOTION",  cls: "th-bw" },
+  "midnight":    { label: "MIDNIGHT",    cls: "th-midnight" },
+  "blueprint":   { label: "BLUEPRINT",   cls: "th-blueprint" },
+  "minimal":     { label: "MINIMAL",     cls: "th-minimal" },
+  "topo":        { label: "TOPOGRAPHIC", cls: "th-topo" }
+};
+const THEME_ORDER = ["bw-motion", "midnight", "blueprint", "minimal", "topo"];
+
+/* ---------------------------------------------------------------------
+ * 6. Export sizes â€” `css` (9/16 etc.) keeps the on-screen preview the
+ *    same shape as the real pixels it will export as.
+ * ------------------------------------------------------------------- */
+const RATIOS = {
+  story:    { label: "STORY",    w: 1080, h: 1920, css: 9 / 16 },
+  portrait: { label: "PORTRAIT", w: 1080, h: 1350, css: 4 / 5 },
+  square:   { label: "SQUARE",   w: 1080, h: 1080, css: 1 }
+};
+
+/* ---------------------------------------------------------------------
+ * 7. Export â€” the single public "API" for every other file.
+ * ------------------------------------------------------------------- */
+window.STRIDE = { activities, STAT_META, themes, THEME_ORDER, RATIOS };
+
+</script>
+  <script>
+/*
+ * =====================================================================
+ *  artwork.js â€” builds the running-poster as ordinary HTML
+ * =====================================================================
+ *
+ *  THE CORE IDEA
+ *  -------------
+ *  We draw the poster with HTML + CSS (not canvas) so it is easy to
+ *  read and to style. The same markup is used in 3 places:
+ *
+ *     1. the little theme preview cards
+ *     2. the big editor preview
+ *     3. the export preview
+ *
+ *  `mount(container, state)` takes a <div> and fills it with the poster.
+ *  The `state` object passed in decides WHAT goes on the poster
+ *  (which activity, which theme, which stats are switched on, etc).
+ *
+ *  The theme's "look" (colors, background, decorations) lives in the
+ *  CSS classes `.th-bw`, `.th-midnight`, ... â€” see app.css.
+ *
+ *  `exportCanvas` in exporter.js re-draws the SAME layout onto a real
+ *  1080px canvas when you press GENERATE. Don't worry about that now.
+ * =====================================================================
+ */
+
+/* Wrap everything in a function so our variables stay private and do
+   not clash with the other files that also use names like `D`. */
+(function () {
+"use strict";
+
+const { STRIDE: D } = window;
+
+/* ---------------------------------------------------------------------
+ * Maths helpers
+ * -------------
+ *  - mulberry32 : a tiny "random" number generator that always returns
+ *                 the same numbers for the same seed. This keeps the
+ *                 squiggly route line identical every visit instead of
+ *                 changing on every page load.
+ *  - routePoints / toPath : build a smooth running-route line.
+ * ------------------------------------------------------------------- */
+const mulberry32 = seed => () => {
+  seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+const hashSeed = str => {
+  let h = 2166136261;
+  for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+};
+
+function routePoints(seedStr, n = 13) {
+  const rnd = mulberry32(hashSeed(seedStr));
+  const pts = [];
+  let y = 30;
+  for (let i = 0; i < n; i++) {
+    const x = 5 + (90 * i) / (n - 1);
+    y += (rnd() - 0.5) * 24;                 // drift up/down a bit
+    pts.push({ x, y: Math.max(12, Math.min(86, y)) });
+  }
+  return pts;
+}
+
+function toPath(pts) {
+  let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], mx = (a.x + b.x) / 2;
+    d += ` Q${a.x.toFixed(1)} ${a.y.toFixed(1)}, ${mx.toFixed(1)} ${b.y.toFixed(1)}`; // smooth corners
+  }
+  return d;
+}
+
+/* ---------------------------------------------------------------------
+ * Small building blocks for the poster HTML
+ * ------------------------------------------------------------------ */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const markSvg = '<svg class="mark" viewBox="0 0 32 32"><path d="M7 25 L17 7"/><path d="M15 25 L25 7"/></svg>';
+const photoSvg = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14"/><circle cx="9" cy="10.5" r="1.6"/><path d="M3 17l5.5-5L14 17l3.5-3.5L21 17"/></svg>';
+
+/* Each theme can add a small "decoration" (stars, grid, layout lines). */
+function decoration(themeId, seedStr) {
+  const rnd = mulberry32(hashSeed(seedStr));
+  const stars = () => Array.from({ length: 26 }, () =>
+    `<circle cx="${(rnd() * 100).toFixed(1)}" cy="${(rnd() * 100).toFixed(1)}" r="${(0.2 + rnd() * 0.3).toFixed(2)}" opacity="${(0.2 + rnd() * 0.6).toFixed(2)}"/>`).join("");
+
+  if (themeId === "midnight")  return `<div class="art-decor"><svg class="art-stars" viewBox="0 0 100 100" preserveAspectRatio="none">${stars()}</svg></div>`;
+  if (themeId === "bw-motion") return '<div class="art-decor"><span class="slash"></span><span class="slash s2"></span></div>';
+  if (themeId === "blueprint") return '<div class="art-decor"><div class="frame"></div><span class="coords">30.27Â° N&nbsp;&nbsp;77.08Â° E</span></div>';
+  return ""; // minimal + topo get their looks purely from CSS
+}
+
+function photoFrame(bottom) {
+  return `<figure class="art-photo${bottom ? " is-bottom" : ""}">${photoSvg}<figcaption>ADD PHOTO</figcaption></figure>`;
+}
+
+/* ---------------------------------------------------------------------
+ * THE MAIN FUNCTION â€” turns `state` into poster HTML string
+ * ------------------------------------------------------------------ */
+function markup(state) {
+  const act = D.activities.find(a => a.id === state.activityId);
+  const cls = D.themes[state.themeId].cls;
+  const opt = state.options;
+
+  const title = (state.headline || act.name);
+  const sub   = [state.location || act.place, ...(opt.date ? [act.date] : [])].join("  Â·  ");
+
+  // Pick which stat becomes the big headline number: distance > time > pace > first on
+  const visible = D.STAT_META.filter(m => opt.stats[m.key]);
+  const heroKey = ["distance", "time", "pace"].find(k => opt.stats[k]) || visible[0]?.key;
+  const hero = act.stats[heroKey];
+
+  let html = `<div class="art ${cls}">`;
+  html += decoration(state.themeId, act.id);
+
+  if (state.photo === "top") html += photoFrame(false);
+
+  html += `<header class="art-head"><h2 class="art-title">${esc(title)}</h2><p class="art-sub">${esc(sub)}</p></header>`;
+
+  if (hero) html +=
+    `<div class="art-hero"><span class="art-hero-value">${esc(hero.value)}</span><span class="art-hero-unit">${esc(hero.unit)}</span></div>`;
+
+  const rows = visible.filter(m => m.key !== heroKey);
+  if (rows.length) html += `<ul class="art-stats">` +
+    rows.map(m => `<li><span class="k">${esc(m.label)}</span><span class="v">${esc(act.stats[m.key].value)}<span class="u">${esc(act.stats[m.key].unit)}</span></span></li>`).join("") +
+    `</ul>`;
+
+  if (opt.route) {
+    const pts = routePoints("run-" + act.id);
+    html += `<svg class="art-route" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><path d="${toPath(pts)}"/><circle class="rt-start" cx="${pts[0].x}" cy="${pts[0].y}" r="1.9"/><circle class="rt-end" cx="${pts[pts.length - 1].x}" cy="${pts[pts.length - 1].y}" r="1.9"/></svg>`;
+  }
+
+  if (state.photo === "bottom") html += photoFrame(true);
+
+  html += `<footer class="art-foot"><span class="art-brand">${markSvg}MILEMOTION</span><span class="art-tag">YOUR RUN. YOUR STORY.</span></footer></div>`;
+
+  return html;
+}
+
+/* Fill a <div> with the poster. This is what the app calls. */
+function mount(el, state) {
+  el.innerHTML = markup(state);
+}
+
+window.STRIDE.art = { mount, markup, routePoints, toPath, mulberry32, hashSeed };
+})();
+
+</script>
+  <script>
+/*
+ * =====================================================================
+ *  exporter.js â€” draws the poster as a REAL high-resolution PNG
+ * =====================================================================
+ *
+ *  WHY THIS FILE EXISTS
+ *  --------------------
+ *  The poster you see on screen is HTML/CSS (see artwork.js). That is
+ *  easy to read, but HTML can't easily be "downloaded" as a crisp
+ *  image file. So when the user presses GENERATE, this file re-draws
+ *  the exact same poster onto a <canvas> at full 1080x1920 (etc.)
+ *  resolution, then converts the canvas to a PNG that can be saved.
+ *
+ *  It intentionally mirrors artwork.js so the export always matches
+ *  the preview. THEME palettes live in `PALETTES` below.
+ * =====================================================================
+ */
+
+/* Private scope â€” see the note at the top of artwork.js. */
+(function () {
+"use strict";
+
+const { STRIDE: D } = window;
+const A = window.STRIDE.art;
+
+/* Palette = the colors/fonts for each theme. */
+const PALETTES = {
+  "bw-motion":   { bg: "#000",     fg: "#fafafa", mut: "rgba(250,250,250,.5)",   line: "rgba(250,250,250,.22)",  acc: "#fafafa", disp: "Anton" },
+  "midnight":    { bg: "#101730",  fg: "#edf2ff", mut: "rgba(237,242,255,.52)",  line: "rgba(237,242,255,.16)",  acc: "#9cc0ff", disp: "Anton" },
+  "blueprint":   { bg: "#07293f",  fg: "#d9ebf7", mut: "rgba(217,235,247,.55)",  line: "rgba(143,208,255,.3)",   acc: "#8fd0ff", disp: "Anton" },
+  "minimal":     { bg: "#f3f1ec",  fg: "#171512", mut: "rgba(23,21,18,.46)",     line: "rgba(23,21,18,.16)",     acc: "#171512", disp: "Inter" },
+  "topo":        { bg: "#101310",  fg: "#e9eee2", mut: "rgba(233,238,226,.5)",   line: "rgba(233,238,226,.16)",  acc: "#b7c9a6", disp: "Anton" }
+};
+
+/* ----------------------- tiny helpers ----------------------- */
+
+/* Draw text with letter-spacing (canvas has no built-in tracking). */
+function tracked(ctx, txt, x, y, ls) {
+  ctx.letterSpacing = ls + "px";
+  ctx.fillText(txt, x, y);
+  ctx.letterSpacing = "0px";
+}
+function line(ctx, x1, y1, x2, y2, color) {
+  ctx.strokeStyle = color; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y1 + .5); ctx.lineTo(x2, y2 + .5); ctx.stroke();
+}
+function setFont(ctx, weight, size, family) { ctx.font = `${weight} ${size}px ${family}`; }
+
+/* Wait for the Google fonts to load so exported text looks right. */
+async function waitFonts() {
+  try {
+    await Promise.all([
+      document.fonts.load('400 100px Anton'),
+      document.fonts.load("800 100px Inter"),
+      document.fonts.load("600 100px Inter"),
+      document.fonts.load('400 50px "IBM Plex Mono"')
+    ]);
+    await document.fonts.ready;
+  } catch (e) { /* if fonts fail, canvas falls back to built-in fonts */ }
+}
+
+/* ----------------------- the main renderer ----------------------- */
+
+async function exportCanvas(state, ratioKey) {
+  await waitFonts();
+
+  const R = D.RATIOS[ratioKey];
+  const W = R.w, H = R.h;
+  const pad = W * 0.08;                 // margin around the edges
+  const innerW = W - pad * 2;
+  const act = D.activities.find(a => a.id === state.activityId);
+  const p = PALETTES[state.themeId];
+  const opt = state.options;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+
+  /* 1) BACKGROUND + small decorations per theme */
+  if (state.themeId === "midnight") {           // subtle blue gradient
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#090e22"); g.addColorStop(1, "#16224a");
+    ctx.fillStyle = g;
+  } else ctx.fillStyle = p.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  let y = pad;
+
+  /* optional photo placeholder at the top */
+  if (state.photo === "top") { y = drawPhoto(ctx, p, pad, y, innerW, innerW * 0.55) + W * 0.06; }
+
+  /* 2) TITLE + subtitle */
+  const title = state.headline || act.name;
+  setFont(ctx, p.disp === "Anton" ? 400 : 800, W * 0.1, p.disp);
+  ctx.fillStyle = p.fg;
+  ctx.fillText(title, pad, y + W * 0.075);
+  y += W * 0.1 + (p.disp === "Anton" ? W * 0.02 : 0);
+
+  const sub = [state.location || act.place, ...(opt.date ? [act.date] : [])].join("  Â·  ");
+  setFont(ctx, 400, W * 0.026, '"IBM Plex Mono"');
+  ctx.fillStyle = p.mut;
+  tracked(ctx, sub, pad, y + W * 0.02, W * 0.008);
+  y += W * 0.06;
+
+  /* 3) HERO stat (the big number) */
+  const visible = D.STAT_META.filter(m => opt.stats[m.key]);
+  const heroKey = ["distance", "time", "pace"].find(k => opt.stats[k]) || visible[0]?.key;
+  const hero = act.stats[heroKey];
+  if (hero) {
+    y += W * 0.08;
+    setFont(ctx, 400, W * 0.29, p.disp === "Anton" ? "Anton" : "Inter");
+    ctx.fillStyle = p.fg;
+    ctx.fillText(hero.value, pad, y + W * 0.22);
+    if (hero.unit) { setFont(ctx, 400, W * 0.05, '"IBM Plex Mono"'); ctx.fillStyle = p.acc; ctx.fillText(hero.unit, pad + W * 0.34, y + W * 0.22); }
+    y += W * 0.3;
+  }
+
+  /* 4) Remaining stats as labelled rows */
+  const rows = visible.filter(m => m.key !== heroKey);
+  rows.forEach(m => {
+    y += W * 0.07;
+    line(ctx, pad, y, W - pad, p.line);
+    const v = act.stats[m.key];
+    setFont(ctx, 400, W * 0.026, '"IBM Plex Mono"'); ctx.fillStyle = p.mut;
+    tracked(ctx, m.label, pad, y + W * 0.035, W * 0.008);
+    setFont(ctx, 600, W * 0.045, "Inter"); ctx.fillStyle = p.fg;
+    tracked(ctx, v.value + (v.unit ? " " + v.unit : ""), W - pad, y + W * 0.045, 0);
+  });
+  ctx.textAlign = "left";
+
+  /* 5) route line fills whatever space is left before the footer */
+  const routeH = H - pad - W * 0.12 - y;            // space between stats and footer
+  if (opt.route && routeH > W * 0.1) {
+    const pts = A.routePoints("run-" + act.id);
+    const d = A.toPath(pts);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+                `<path d="${d}" fill="none" stroke="#${p.acc.slice(1)}" stroke-width="2" stroke-linecap="round"/>` + // route
+                `<circle cx="${pts[0].x}" cy="${pts[0].y}" r="1.9" fill="#${p.bg.slice(1)}" stroke="#${p.acc.slice(1)}" stroke-width="2"/>` +
+                `<circle cx="${pts[pts.length - 1].x}" cy="${pts[pts.length - 1].y}" r="1.9" fill="#${p.bg.slice(1)}" stroke="#${p.acc.slice(1)}" stroke-width="2"/>` +
+                `</svg>`;
+    const img = new Image();
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    await new Promise(res => img.onload = res);      // wait for the image to decode
+    ctx.drawImage(img, pad, y + W * 0.02, innerW, routeH - W * 0.02);
+    y += routeH - W * 0.02;
+  }
+
+  /* 6) optional photo placeholder at the bottom */
+  if (state.photo === "bottom") y = drawPhoto(ctx, p, pad, y, innerW, innerW * 0.4) + W * 0.03;
+
+  /* 7) footer line + brand */
+  line(ctx, pad, H - pad, W - pad, H - pad, p.line);
+  setFont(ctx, 400, W * 0.026, '"IBM Plex Mono"'); ctx.fillStyle = p.fg;
+  tracked(ctx, "MILEMOTION", pad, H - pad + W * 0.035, W * 0.009);
+  ctx.fillStyle = p.mut;
+  tracked(ctx, "YOUR RUN. YOUR STORY.", W - pad, H - pad + W * 0.035, W * 0.006);
+
+  return canvas;
+}
+
+/* Draw a dashed "add photo" placeholder box; returns the new y position. */
+function drawPhoto(ctx, p, x, y, w, h) {
+  ctx.save();
+  ctx.strokeStyle = p.line;
+  ctx.setLineDash([w * 0.02, w * 0.014]);
+  ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  ctx.setLineDash([]);
+  ctx.fillStyle = p.mut;
+  ctx.textAlign = "center";
+  setFont(ctx, 400, w * 0.022, '"IBM Plex Mono"');
+  tracked(ctx, "ADD PHOTO", x + w / 2, y + h / 2, w * 0.007);
+  ctx.restore();
+  return y + h;
+}
+
+/* ----------------------- public helpers ----------------------- */
+
+function fileName(state, ratioKey) {
+  const a = D.activities.find(a => a.id === state.activityId);
+  return `milemotion-${state.themeId}-${a.stats.distance.value.replace(".", "")}km-${ratioKey}.png`;
+}
+
+/* ----------------------- conversion: canvas -> PNG blob ----------------------- */
+async function toBlob(state, ratioKey) {
+  const canvas = await exportCanvas(state, ratioKey);
+  return new Promise(res => canvas.toBlob(res, "image/png"));
+}
+
+window.STRIDE.exporter = { exportCanvas, toBlob, fileName };
+})();
+
+</script>
+  <script>
+/*
+ * =====================================================================
+ *  app.js â€” connects the buttons to the artwork
+ * =====================================================================
+ *
+ *  HOW THE APP WORKS
+ *  -----------------
+ *  1. You pick a run  ->  `state.activityId` changes
+ *  2. You pick a theme->  `state.themeId` changes
+ *  3. The editor panel toggles stats/photo/text -> `state.options` changes
+ *  4. After EVERY change we call `render()` which redraws the poster.
+ *
+ *  `state` is the single source of truth â€” it holds everything about
+ *  the poster the user is building. Most of this file is just wiring
+ *  up the HTML buttons to update `state` and re-render.
+ * =====================================================================
+ */
+
+/* Private scope â€” see the note at the top of artwork.js. */
+(function () {
+"use strict";
+
+const { STRIDE: D } = window;
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+/* ---------------------------------------------------------------------
+ * 1. APP STATE (the "memory" of the poster being edited)
+ * ------------------------------------------------------------------- */
+let state = {
+  activityId: "a1",
+  themeId:    "bw-motion",
+  ratio:      "story",
+  photo:      "none",
+  headline:   "",                       // custom title (empty = use run name)
+  location:   "",                       // custom place   (empty = use run place)
+  options: {                            // stat switches, first 3 on
+    stats: { distance: true, time: true, pace: true, elevation: false, calories: false, hr: false },
+    route: true,
+    date: true
+  }
+};
+
+const act = () => D.activities.find(a => a.id === state.activityId);
+
+/* ---------------------------------------------------------------------
+ * 2. REDRAW â€” always refreshes every poster on screen.
+ * ------------------------------------------------------------------- */
+const stages = { editor: $("#editorStage"), export: $("#exportStage") };
+function render() {
+  D.art.mount(stages.editor, state);
+  D.art.mount(stages.export, state);
+}
+
+/* ---------------------------------------------------------------------
+ * 3. SCREEN SWITCHING (Home -> Activities -> Theme -> Editor -> Export)
+ *    Only the matching .screen gets the .active class; CSS animates it.
+ * ------------------------------------------------------------------- */
+const ORDER = ["home", "activities", "themes", "editor", "export"];
+let current = "home";
+
+function show(name) {
+  if (name === current) return;
+  $("#screens").dataset.dir = ORDER.indexOf(name) > ORDER.indexOf(current) ? "fwd" : "back";
+  $("#screen-" + current).classList.remove("active");
+  $("#screen-" + name).classList.add("active");
+  current = name;
+  closeSheet();
+  fitStages();
+  if (name === "themes") syncTheme();
+}
+
+// Every back arrow knows to go to the previous screen
+$$("[data-back]").forEach(btn => btn.onclick = () => show(ORDER[ORDER.indexOf(current) - 1]));
+
+$("#btnConnect").onclick = () => { toast("STRAVA CONNECT â€” MOCKED IN DEMO"); show("activities"); };
+$("#btnDemo").onclick     = () => show("activities");
+$("#btnToEditor").onclick = () => show("editor");
+$("#btnEditorExport").onclick = () => show("export");
+
+/* ---------------------------------------------------------------------
+ * 4. ACTIVITY LIST â€” render the 6 runs as buttons.
+ * ------------------------------------------------------------------- */
+(function buildActivityList() {
+  const ul = $("#actList");
+  ul.innerHTML = D.activities.map((a, i) =>
+    `<li><button class="act-row" data-id="${a.id}">
+       <span class="act-idx">${String(i + 1).padStart(2, "0")}</span>
+       <span><span class="act-name">${a.name}</span>
+         <span class="act-meta">${a.stats.distance.value} KM Â· ${a.stats.time.value} Â· ${a.stats.pace.value}/KM</span></span>
+       <span class="act-date">${a.place}</span>
+     </button></li>`).join("");
+
+  ul.onclick = e => {
+    const b = e.target.closest("[data-id]");
+    if (!b) return;
+    state.activityId = b.dataset.id;
+    $("#themeActName").textContent = act().name;
+    buildThemeRail();          // preview cards show the new route
+    render();
+    show("themes");
+  };
+  $("#actCount").textContent = String(D.activities.length).padStart(2, "0");
+})();
+
+/* ---------------------------------------------------------------------
+ * 5. THEME RAIL â€” little poster previews for each style.
+ *    Also reused (smaller) inside the Style panel.
+ * ------------------------------------------------------------------- */
+function buildThemeRail() {
+  const rail = $("#themeRail");
+  rail.innerHTML = D.THEME_ORDER.map(k =>
+    `<button class="theme-card" data-theme="${k}"><div class="theme-frame stage" data-mini="${k}"></div><span class="theme-label">${D.themes[k].label}</span></button>`).join("");
+  D.THEME_ORDER.forEach(k => D.art.mount(rail.querySelector(`[data-mini="${k}"]`), { ...state, themeId: k }));
+  rail.onclick = e => { const c = e.target.closest("[data-theme]"); if (c) { state.themeId = c.dataset.theme; syncTheme(); render(); } };
+  syncTheme();
+}
+
+function syncTheme() {
+  $$("[data-theme]").forEach(c => c.classList.toggle("is-active", c.dataset.theme === state.themeId));
+}
+
+/* ---------------------------------------------------------------------
+ * 6. EDITOR STAGE SIZING â€” keeps the poster exactly the export shape.
+ * ------------------------------------------------------------------- */
+function fit(el, box) {
+  const s = getComputedStyle(box);
+  const w = box.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+  const h = box.clientHeight - parseFloat(s.paddingTop) - parseFloat(s.paddingBottom);
+  if (w <= 0 || h <= 0) return;
+  const r = D.RATIOS[state.ratio].css;
+  let H = h, W = H * r;
+  if (W > w) { W = w; H = W / r; }
+  el.style.cssText = `width:${W}px;height:${H}px`;
+}
+function fitStages() { fit(stages.editor, $("#editorStageBox")); fit(stages.export, $("#exportStageBox")); }
+new ResizeObserver(fitStages).observe($("#editorStageBox"));
+new ResizeObserver(fitStages).observe($("#exportStageBox"));
+
+/* ---------------------------------------------------------------------
+ * 7. EDITOR BOTTOM SHEET â€” slides up to reveal each tool's options.
+ * ------------------------------------------------------------------- */
+const sheet = $("#sheetBody");
+let openTool = null;
+
+function openSheet(name) {
+  openTool = name;
+  sheet.innerHTML = `<div class="panel">` + PANELS[name]() + `</div>`;
+  wire(sheet, name);
+  $("#sheetWrap").hidden = false;
+  requestAnimationFrame(() => $("#sheetWrap").classList.add("open")); // 1 frame wait so CSS can animate
+  $$(".tool").forEach(t => t.classList.toggle("is-active", t.dataset.tool === name));
+}
+function closeSheet() {
+  if ($("#sheetWrap").hidden) return;
+  $("#sheetWrap").classList.remove("open");
+  openTool = null;
+  setTimeout(() => { $("#sheetWrap").hidden = true; sheet.innerHTML = ""; }, 340); // wait for slide-down
+  $$(".tool").forEach(t => t.classList.remove("is-active"));
+}
+$("#toolbar").onclick = e => { const b = e.target.closest(".tool"); if (!b) return; b.dataset.tool === openTool ? closeSheet() : openSheet(b.dataset.tool); };
+$("#sheetScrim").onclick = closeSheet;
+document.onkeydown = e => { if (e.key === "Escape") { closeSheet(); hideGen(); } };
+
+/* The four panels (each returns HTML; wire() attaches their handlers). */
+const toggle = (key, label, on) =>
+  `<div class="opt-row"><span class="opt-label">${label}</span><button class="switch${on ? " is-on" : ""}" data-toggle="${key}" role="switch" aria-checked="${on}"></button></div>`;
+
+const PANELS = {
+  stats: () => D.STAT_META.map(m => toggle(m.key, m.label, state.options.stats[m.key])).join("") +
+          toggle("route", "ROUTE LINE", state.options.route) + toggle("date", "DATE", state.options.date),
+
+  photo: () => '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:14px">' +
+    ["none", "top", "bottom"].map(v =>
+      `<button class="seg-btn${state.photo === v ? " is-active" : ""}" data-photo="${v}">${v.toUpperCase()}</button>`).join("") +
+    "</div>",
+
+  text: () =>
+    `<label class="field"><span>HEADLINE</span><input data-field="headline" value="${state.headline}" placeholder="${act().name}"></label>` +
+    `<label class="field"><span>LOCATION</span><input data-field="location" value="${state.location}" placeholder="${act().place}"></label>`,
+
+  style: () => D.THEME_ORDER.map(k =>
+      `<button class="style-card" data-theme="${k}"><div class="style-frame stage" data-mini2="${k}"></div><span class="style-name">${D.themes[k].label}</span></button>`).join("")
+};
+
+function wire(el, name) {
+  if (name === "stats")   el.onclick = e => { const b = e.target.closest("[data-toggle]"); if (!b) return; const k = b.dataset.toggle; const v = k === "route" ? state.options.route = !state.options.route : k === "date" ? state.options.date = !state.options.date : state.options.stats[k] = !state.options.stats[k]; b.classList.toggle("is-on", v); render(); };
+  if (name === "photo")   el.onclick = e => { const b = e.target.closest("[data-photo]"); if (!b) return; state.photo = b.dataset.photo; $$(".seg-btn").forEach(x => x.classList.toggle("is-active", x.dataset.photo === state.photo)); render(); };
+  if (name === "text")    el.oninput  = e => { const b = e.target.closest("[data-field]"); if (!b) return; state[b.dataset.field] = b.value; render(); };
+  if (name === "style") { // mount small previews, then handle clicks
+    D.THEME_ORDER.forEach(k => D.art.mount(el.querySelector(`[data-mini2="${k}"]`), { ...state, themeId: k }));
+    el.onclick = e => { const c = e.target.closest("[data-theme]"); if (!c || !c.dataset.theme) return; state.themeId = c.dataset.theme; syncTheme(); render(); };
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * 8. EXPORT â€” choose ratio, then GENERATE draws a real PNG.
+ * ------------------------------------------------------------------- */
+$("#ratioSeg").onclick = e => { const b = e.target.closest("[data-ratio]"); if (!b) return; state.ratio = b.dataset.ratio; $$(".ratio").forEach(r => r.classList.toggle("is-active", r.dataset.ratio === state.ratio)); fitStages(); };
+
+/* ---------------------------------------------------------------------
+ * 9. GENERATE OVERLAY â€” fake "rendering" progress, then real PNG screen.
+ * ------------------------------------------------------------------- */
+let lastBlob = null;
+function showGen() {
+  $("#genlay").hidden = false;
+  $(".gen-progress").hidden = false;
+  $(".gen-done").hidden = true;
+  $("#genBar").style.width = "0%";
+  // Animate a progress bar for feel, then actually render the PNG.
+  let p = 0;
+  const tick = setInterval(() => { p = Math.min(100, p + 18); $("#genBar").style.width = p + "%"; if (p >= 100) { clearInterval(tick); finishGen(); } }, 150);
+}
+async function finishGen() {
+  try { lastBlob = await D.exporter.toBlob(state, state.ratio); } catch (e) { lastBlob = null; }
+  setTimeout(() => {
+    $(".gen-progress").hidden = true;
+    $(".gen-done").hidden = false;
+    D.art.mount($("#genStage"), state);
+    $("#genFile").textContent = D.exporter.fileName(state, state.ratio);
+  }, 220);
+}
+function hideGen() { $("#genlay").hidden = true; }
+$("#btnGenerate").onclick = showGen;
+$("#btnGenClose").onclick = hideGen;
+$("#genlay").onclick = e => { if (e.target.id === "genlay") hideGen(); };
+
+/* SAVE â€” on Android send bytes to the native bridge; on web trigger download */
+$("#btnSaveImg").onclick = async () => {
+  const blob = lastBlob || await D.exporter.toBlob(state, state.ratio);
+  const name = D.exporter.fileName(state, state.ratio);
+  if (!blob) return toast("RENDER FAILED");
+  if (window.MileMotion?.saveImage) {                       // Android WebView
+    const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.readAsDataURL(blob); });
+    window.MileMotion.saveImage(b64, name);
+  } else {                                                  // normal browser
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: name });
+    a.click();
+  }
+  toast("IMAGE SAVED");
+};
+
+/* SHARE â€” uses the browser's native share sheet if available */
+$("#btnShare").onclick = async () => {
+  const blob = lastBlob || await D.exporter.toBlob(state, state.ratio);
+  if (!blob) return toast("RENDER FAILED");
+  const file = new File([blob], D.exporter.fileName(state, state.ratio), { type: "image/png" });
+  if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: "MileMotion", text: "Your run. Your story." }); toast("SHARED"); }
+  else toast("SHARE SHEET â€” MOCKED IN DEMO");
+};
+
+/* ---------------------------------------------------------------------
+ * 10. SMALL STUFF â€” clock + toast + home banner line.
+ * ------------------------------------------------------------------- */
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2000); }
+setInterval(() => { const n = new Date(); $("#sbTime").textContent = `${n.getHours()}:${String(n.getMinutes()).padStart(2, "0")}`; }, 30000);
+
+/* home banner: a faint route line behind the logo */
+(function homeLine() {
+  const pts = D.art.routePoints("home-hero", 10).map(p => ({ x: p.x, y: 14 + p.y * 1.7 }));
+  $("#homeTrail").setAttribute("d", D.art.toPath(pts));
+})();
+
+/* ---------------------------------------------------------------------
+ * 11. GO! â€” build everything once the page loads.
+ * ------------------------------------------------------------------- */
+$("#themeActName").textContent = act().name;
+buildThemeRail();
+render();
+})();
+
+
+</script>
+</body>
+</html>

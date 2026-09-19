@@ -872,42 +872,21 @@ svg {
   background: #0a0a0a;
 }
 
-/* segmented */
-
-.seg {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  border: 1px solid var(--line-2);
-  margin: 14px 0 4px;
-}
-
-.seg button {
-  padding: 12px 6px;
+/* segmented buttons (photo panel) */
+.seg-btn {
+  width: 100%;
+  padding: 14px 6px;
   font-family: var(--font-mono);
   font-size: 9.5px;
   letter-spacing: 0.2em;
   color: var(--muted);
-  border-left: 1px solid var(--line-2);
+  border: 1px solid var(--line-2);
   transition: background-color 0.18s, color 0.18s;
 }
 
-.seg button:first-child {
-  border-left: 0;
-}
-
-.seg button.is-active {
+.seg-btn.is-active {
   background: var(--text);
   color: #060606;
-}
-
-.seg-big {
-  width: 100%;
-  margin: 14px 0 2px;
-}
-
-.seg-big button {
-  padding: 15px 6px;
 }
 
 /* fields */
@@ -1372,12 +1351,6 @@ svg {
   padding: 6.5cqw 0 5.5cqw;
 }
 
-.art-hero-row {
-  display: flex;
-  align-items: baseline;
-  gap: 1.8cqw;
-}
-
 .art-hero-value {
   font-family: var(--a-disp);
   font-size: 29cqw;
@@ -1391,27 +1364,6 @@ svg {
   font-weight: 500;
   letter-spacing: 0.12em;
   color: var(--a-acc);
-}
-
-.art-hero-cap {
-  display: flex;
-  align-items: center;
-  gap: 3cqw;
-  margin-top: 2.4cqw;
-  font-family: var(--font-mono);
-  font-size: 2.5cqw;
-  letter-spacing: 0.32em;
-  color: var(--a-mut);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.art-hero-cap::before,
-.art-hero-cap::after {
-  content: "";
-  flex: 0 0 auto;
-  width: 7cqw;
-  border-top: 1px solid var(--a-line);
 }
 
 .art-stats {
@@ -1525,19 +1477,6 @@ svg {
   --a-acc: #fafafa;
 }
 
-.th-bw .art-decor .speedlines {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    -58deg,
-    rgba(255, 255, 255, 0.05) 0,
-    rgba(255, 255, 255, 0.05) 2px,
-    transparent 2px,
-    transparent 13cqw
-  );
-  mask-image: linear-gradient(200deg, #000 30%, transparent 78%);
-}
-
 .th-bw .art-decor .slash {
   position: absolute;
   background: rgba(255, 255, 255, 0.07);
@@ -1647,11 +1586,6 @@ svg {
   filter: drop-shadow(0 0 5px rgba(156, 192, 255, 0.55));
 }
 
-.th-midnight .art-hero-cap::before,
-.th-midnight .art-hero-cap::after {
-  border-top-style: dotted;
-}
-
 /* ---------- THEME · BLUEPRINT ---------- */
 
 .art.th-blueprint {
@@ -1714,17 +1648,6 @@ svg {
   color: var(--a-acc);
 }
 
-.th-blueprint .art-hero-cap {
-  color: var(--a-acc);
-}
-
-.th-blueprint .art-hero-cap::before,
-.th-blueprint .art-hero-cap::after {
-  width: 10cqw;
-  border-top-style: double;
-  border-top-width: 3px;
-}
-
 .th-blueprint .art-stats li {
   border-top-style: dashed;
 }
@@ -1783,25 +1706,12 @@ svg {
   --a-mut: rgba(233, 238, 226, 0.5);
   --a-line: rgba(233, 238, 226, 0.16);
   --a-acc: #b7c9a6;
-}
-
-.th-topo .art-contours {
-  position: absolute;
-  inset: 0;
-}
-
-.th-topo .art-contours path {
-  fill: none;
-  stroke: rgba(183, 201, 166, 0.2);
-  stroke-width: 0.35;
-}
-
-.th-topo .art-contours .idx {
-  fill: rgba(183, 201, 166, 0.4);
-  stroke: none;
-  font-family: var(--font-mono);
-  font-size: 1.7px;
-  letter-spacing: 0.08em;
+  background:
+    radial-gradient(30cqw 30cqw at 78% 14%, rgba(183, 201, 166, 0.14), transparent 60%),
+    radial-gradient(46cqw 46cqw at 70% 22%, rgba(183, 201, 166, 0.1), transparent 60%),
+    radial-gradient(62cqw 62cqw at 60% 34%, rgba(183, 201, 166, 0.07), transparent 60%),
+    radial-gradient(80cqw 80cqw at 50% 50%, rgba(183, 201, 166, 0.05), transparent 60%),
+    #101310;
 }
 
 .th-topo .art-stats {

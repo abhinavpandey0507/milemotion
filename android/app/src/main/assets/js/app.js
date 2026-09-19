@@ -1,526 +1,271 @@
-/* ============================================================
-   STRIDE · app.js — state, navigation, editor, sheets, export
-   ============================================================ */
+/*
+ * =====================================================================
+ *  app.js — connects the buttons to the artwork
+ * =====================================================================
+ *
+ *  HOW THE APP WORKS
+ *  -----------------
+ *  1. You pick a run  ->  `state.activityId` changes
+ *  2. You pick a theme->  `state.themeId` changes
+ *  3. The editor panel toggles stats/photo/text -> `state.options` changes
+ *  4. After EVERY change we call `render()` which redraws the poster.
+ *
+ *  `state` is the single source of truth — it holds everything about
+ *  the poster the user is building. Most of this file is just wiring
+ *  up the HTML buttons to update `state` and re-render.
+ * =====================================================================
+ */
 
+/* Private scope — see the note at the top of artwork.js. */
 (function () {
-  "use strict";
+"use strict";
 
-  const D = window.STRIDE;
-  const $ = function (sel) { return document.querySelector(sel); };
-  const $$ = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
+const { STRIDE: D } = window;
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
 
-  /* ---------- state ---------- */
-
-  const defaultOptions = function () {
-    const stats = {};
-    D.statMeta.forEach(function (m, i) {
-      stats[m.key] = i < 3; // distance · time · pace on by default
-    });
-    return {
-      stats: stats,
-      route: true,
-      date: true
-    };
-  };
-
-  let state = {
-    activityId: "a1",
-    themeId: "bw-motion",
-    ratio: "story",
-    options: defaultOptions(),
-    photo: "none",
-    headline: "",
-    location: ""
-  };
-
-  function getActivity() {
-    return D.activities.find(function (a) { return a.id === state.activityId; });
+/* ---------------------------------------------------------------------
+ * 1. APP STATE (the "memory" of the poster being edited)
+ * ------------------------------------------------------------------- */
+let state = {
+  activityId: "a1",
+  themeId:    "bw-motion",
+  ratio:      "story",
+  photo:      "none",
+  headline:   "",                       // custom title (empty = use run name)
+  location:   "",                       // custom place   (empty = use run place)
+  options: {                            // stat switches, first 3 on
+    stats: { distance: true, time: true, pace: true, elevation: false, calories: false, hr: false },
+    route: true,
+    date: true
   }
+};
 
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  }
+const act = () => D.activities.find(a => a.id === state.activityId);
 
-  /* ---------- toast ---------- */
+/* ---------------------------------------------------------------------
+ * 2. REDRAW — always refreshes every poster on screen.
+ * ------------------------------------------------------------------- */
+const stages = { editor: $("#editorStage"), export: $("#exportStage") };
+function render() {
+  D.art.mount(stages.editor, state);
+  D.art.mount(stages.export, state);
+}
 
-  const toastEl = $("#toast");
-  let toastTimer = null;
-  function toast(msg) {
-    toastEl.textContent = msg;
-    toastEl.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () {
-      toastEl.classList.remove("show");
-    }, 2300);
-  }
+/* ---------------------------------------------------------------------
+ * 3. SCREEN SWITCHING (Home -> Activities -> Theme -> Editor -> Export)
+ *    Only the matching .screen gets the .active class; CSS animates it.
+ * ------------------------------------------------------------------- */
+const ORDER = ["home", "activities", "themes", "editor", "export"];
+let current = "home";
 
-  /* ---------- navigation ---------- */
+function show(name) {
+  if (name === current) return;
+  $("#screens").dataset.dir = ORDER.indexOf(name) > ORDER.indexOf(current) ? "fwd" : "back";
+  $("#screen-" + current).classList.remove("active");
+  $("#screen-" + name).classList.add("active");
+  current = name;
+  closeSheet();
+  fitStages();
+  if (name === "themes") syncTheme();
+}
 
-  const ORDER = ["home", "activities", "themes", "editor", "export"];
-  const screensEl = $("#screens");
-  let current = "home";
+// Every back arrow knows to go to the previous screen
+$$("[data-back]").forEach(btn => btn.onclick = () => show(ORDER[ORDER.indexOf(current) - 1]));
 
-  function go(name) {
-    if (name === current) return;
-    const dir = ORDER.indexOf(name) > ORDER.indexOf(current) ? "fwd" : "back";
-    screensEl.setAttribute("data-dir", dir);
-    $("#screen-" + current).classList.remove("active");
-    $("#screen-" + name).classList.add("active");
-    current = name;
-    closeSheet();
-    requestAnimationFrame(function () {
-      fitStages();
-      if (name === "themes") syncThemeSelection();
-    });
-  }
+$("#btnConnect").onclick = () => { toast("STRAVA CONNECT — MOCKED IN DEMO"); show("activities"); };
+$("#btnDemo").onclick     = () => show("activities");
+$("#btnToEditor").onclick = () => show("editor");
+$("#btnEditorExport").onclick = () => show("export");
 
-  $$("[data-back]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      const i = ORDER.indexOf(current);
-      if (i > 0) go(ORDER[i - 1]);
-    });
-  });
+/* ---------------------------------------------------------------------
+ * 4. ACTIVITY LIST — render the 6 runs as buttons.
+ * ------------------------------------------------------------------- */
+(function buildActivityList() {
+  const ul = $("#actList");
+  ul.innerHTML = D.activities.map((a, i) =>
+    `<li><button class="act-row" data-id="${a.id}">
+       <span class="act-idx">${String(i + 1).padStart(2, "0")}</span>
+       <span><span class="act-name">${a.name}</span>
+         <span class="act-meta">${a.stats.distance.value} KM · ${a.stats.time.value} · ${a.stats.pace.value}/KM</span></span>
+       <span class="act-date">${a.place}</span>
+     </button></li>`).join("");
 
-  /* deep link: index.html#editor etc. */
-  (function deepLink() {
-    const h = location.hash.replace("#", "");
-    if (ORDER.indexOf(h) !== -1) {
-      $("#screen-" + current).classList.remove("active");
-      $("#screen-" + h).classList.add("active");
-      screensEl.setAttribute("data-dir", "fwd");
-      current = h;
-      if (h === "themes") $("#themeActName").textContent = getActivity().name;
-    }
-  })();
-
-  /* ---------- status bar clock ---------- */
-
-  function tickClock() {
-    const d = new Date();
-    $("#sbTime").textContent = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
-  }
-  tickClock();
-  setInterval(tickClock, 30000);
-
-  /* ---------- home ---------- */
-
-  (function homeTrail() {
-    const pts = D.art.routePoints("stride-home-hero", 15).map(function (p) {
-      return { x: p.x, y: 18 + p.y * 1.55 };
-    });
-    $("#homeTrail").setAttribute("d", D.art.catmullPath(pts, false));
-  })();
-
-  $("#btnConnect").addEventListener("click", function () {
-    toast("STRAVA CONNECT — MOCKED IN DEMO");
-    go("activities");
-  });
-
-  $("#btnDemo").addEventListener("click", function () {
-    go("activities");
-  });
-
-  /* ---------- activities ---------- */
-
-  (function buildActivities() {
-    const ul = $("#actList");
-    ul.innerHTML = D.activities.map(function (a, i) {
-      const s = a.stats;
-      return (
-        '<li><button class="act-row" data-act="' + a.id + '">' +
-        '<span class="act-idx">' + String(i + 1).padStart(2, "0") + "</span>" +
-        "<span>" +
-        '<span class="act-name">' + esc(a.name) + "</span>" +
-        '<span class="act-meta">' +
-        esc(s.distance.value + " KM · " + s.time.value + " · " + s.pace.value + "/KM") +
-        "</span>" +
-        "</span>" +
-        '<span class="act-right">' +
-        '<span class="act-date">' + esc(a.dateLabel.replace(", ", " ")) + "</span>" +
-        '<svg class="act-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>' +
-        "</span>" +
-        "</button></li>"
-      );
-    }).join("");
-
-    ul.addEventListener("click", function (e) {
-      const row = e.target.closest("[data-act]");
-      if (!row) return;
-      state.activityId = row.getAttribute("data-act");
-      $("#themeActName").textContent = getActivity().name;
-      buildThemeRail(); // re-render minis for new activity route
-      renderArt();
-      go("themes");
-    });
-
-    $("#actCount").textContent = String(D.activities.length).padStart(2, "0");
-  })();
-
-  /* ---------- theme rail ---------- */
-
-  function themeCardHTML(tKey, variant) {
-    const t = D.themes[tKey];
-    const cls = variant === "style" ? "style-card" : "theme-card";
-    const frameCls = variant === "style" ? "style-frame" : "theme-frame";
-    return (
-      '<button class="' + cls + '" data-theme="' + tKey + '">' +
-      '<div class="' + frameCls + ' stage" data-mini="' + tKey + '"></div>' +
-      (variant === "style"
-        ? '<span class="style-name">' + esc(t.label) + "</span>"
-        : '<span class="theme-label"><span>' + esc(t.label) + '</span>' +
-          '<svg class="theme-check" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg>' +
-          "</span>") +
-      "</button>"
-    );
-  }
-
-  function buildThemeRail() {
-    const rail = $("#themeRail");
-    rail.innerHTML = D.themeOrder.map(function (k) { return themeCardHTML(k, "theme"); }).join("");
-    D.themeOrder.forEach(function (k) {
-      const holder = rail.querySelector('[data-mini="' + k + '"]');
-      D.art.mount(holder, Object.assign({}, state, { themeId: k }));
-    });
-    rail.onclick = function (e) {
-      const card = e.target.closest("[data-theme]");
-      if (!card) return;
-      state.themeId = card.getAttribute("data-theme");
-      syncThemeSelection();
-      renderArt();
-    };
-    syncThemeSelection();
-  }
-
-  function syncThemeSelection() {
-    $$(".theme-card").forEach(function (c) {
-      c.classList.toggle("is-active", c.getAttribute("data-theme") === state.themeId);
-    });
-    $$(".style-card").forEach(function (c) {
-      c.classList.toggle("is-active", c.getAttribute("data-theme") === state.themeId);
-    });
-  }
-
-  $("#btnToEditor").addEventListener("click", function () { go("editor"); });
-
-  /* ---------- editor ---------- */
-
-  const editorStage = $("#editorStage");
-  const exportStage = $("#exportStage");
-
-  function renderArt() {
-    D.art.mount(editorStage, state);
-    D.art.mount(exportStage, state);
-    if (!$("#genlay").hidden && !$(".gen-done").hidden) {
-      D.art.mount($("#genStage"), state);
-    }
-  }
-
-  function fitStage(stage, box) {
-    const cs = getComputedStyle(box);
-    const bw = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const bh = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    if (bw <= 0 || bh <= 0) return;
-    const ratio = D.ratios[state.ratio].css;
-    let h = bh, w = h * ratio;
-    if (w > bw) { w = bw; h = w / ratio; }
-    stage.style.width = w + "px";
-    stage.style.height = h + "px";
-  }
-
-  function fitStages() {
-    fitStage(editorStage, $("#editorStageBox"));
-    fitStage(exportStage, $("#exportStageBox"));
-  }
-
-  const ro = new ResizeObserver(function () { fitStages(); });
-  ro.observe($("#editorStageBox"));
-  ro.observe($("#exportStageBox"));
-
-  $("#btnEditorExport").addEventListener("click", function () { go("export"); });
-
-  /* ---------- bottom sheet ---------- */
-
-  const sheetWrap = $("#sheetWrap");
-  const sheetBody = $("#sheetBody");
-  let activeTool = null;
-
-  function openSheet(tool) {
-    activeTool = tool;
-    sheetBody.innerHTML = panels[tool]();
-    wirePanel(tool);
-    sheetWrap.hidden = false;
-    requestAnimationFrame(function () {
-      sheetWrap.classList.add("open");
-    });
-    $$(".tool").forEach(function (t) {
-      const on = t.getAttribute("data-tool") === tool;
-      t.classList.toggle("is-active", on);
-      t.setAttribute("aria-selected", on ? "true" : "false");
-    });
-  }
-
-  function closeSheet() {
-    if (sheetWrap.hidden) return;
-    sheetWrap.classList.remove("open");
-    activeTool = null;
-    setTimeout(function () {
-      sheetWrap.hidden = true;
-      sheetBody.innerHTML = "";
-    }, 340);
-    $$(".tool").forEach(function (t) {
-      t.classList.remove("is-active");
-      t.setAttribute("aria-selected", "false");
-    });
-  }
-
-  $("#toolbar").addEventListener("click", function (e) {
-    const btn = e.target.closest(".tool");
-    if (!btn) return;
-    const tool = btn.getAttribute("data-tool");
-    if (tool === activeTool) closeSheet();
-    else openSheet(tool);
-  });
-
-  $("#sheetScrim").addEventListener("click", closeSheet);
-
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") {
-      closeSheet();
-      hideGenlay();
-    }
-  });
-
-  /* ---------- panels ---------- */
-
-  function swRow(key, label, on) {
-    return (
-      '<div class="opt-row"><span class="opt-label">' + label + "</span>" +
-      '<button class="switch' + (on ? " is-on" : "") + '" data-sw="' + key + '" role="switch" aria-checked="' +
-      (on ? "true" : "false") + '" aria-label="' + label + '"></button></div>'
-    );
-  }
-
-  const panels = {
-
-    stats: function () {
-      let html = '<div class="panel"><p class="panel-title">RUNNING STATS</p>';
-      html += D.statMeta.map(function (m) {
-        return swRow(m.key, m.label, !!state.options.stats[m.key]);
-      }).join("");
-      html += '<p class="panel-title">LAYERS</p>';
-      html += swRow("route", "ROUTE LINE", !!state.options.route);
-      html += swRow("date", "DATE", !!state.options.date);
-      html += '<p class="panel-note">TOGGLES UPDATE THE POSTER LIVE</p></div>';
-      return html;
-    },
-
-    photo: function () {
-      function cell(val, label) {
-        return (
-          '<button data-photo="' + val + '"' +
-          (state.photo === val ? ' class="is-active"' : "") +
-          ">" + label + "</button>"
-        );
-      }
-      return (
-        '<div class="panel"><p class="panel-title">PHOTO PLACEHOLDER</p>' +
-        '<div class="seg seg-big">' + cell("none", "NONE") + cell("top", "TOP") + cell("bottom", "BOTTOM") + "</div>" +
-        '<p class="panel-note">PHOTOS DROP INTO THIS FRAME AFTER CAMERA ROLL INTEGRATION</p></div>'
-      );
-    },
-
-    text: function () {
-      const act = getActivity();
-      return (
-        '<div class="panel"><p class="panel-title">TEXT</p>' +
-        '<label class="field"><span>HEADLINE</span>' +
-        '<input type="text" maxlength="26" data-field="headline" value="' + esc(state.headline) +
-        '" placeholder="' + esc(act.name) + '"></label>' +
-        '<label class="field"><span>LOCATION</span>' +
-        '<input type="text" maxlength="28" data-field="location" value="' + esc(state.location) +
-        '" placeholder="' + esc(act.location) + '"></label>' +
-        '<p class="panel-note">LEAVE A FIELD EMPTY TO USE ACTIVITY DATA</p></div>'
-      );
-    },
-
-    style: function () {
-      return (
-        '<div class="panel"><p class="panel-title">THEME</p>' +
-        '<div class="style-rail">' +
-        D.themeOrder.map(function (k) { return themeCardHTML(k, "style"); }).join("") +
-        "</div></div>"
-      );
-    }
-  };
-
-  function wirePanel(tool) {
-    if (tool === "stats") {
-      sheetBody.onclick = function (e) {
-        const sw = e.target.closest("[data-sw]");
-        if (!sw) return;
-        const key = sw.getAttribute("data-sw");
-        if (key === "route") state.options.route = !state.options.route;
-        else if (key === "date") state.options.date = !state.options.date;
-        else state.options.stats[key] = !state.options.stats[key];
-        const on = key === "route" ? state.options.route : key === "date" ? state.options.date : state.options.stats[key];
-        sw.classList.toggle("is-on", on);
-        sw.setAttribute("aria-checked", on ? "true" : "false");
-        renderArt();
-      };
-    } else if (tool === "photo") {
-      sheetBody.onclick = function (e) {
-        const b = e.target.closest("[data-photo]");
-        if (!b) return;
-        state.photo = b.getAttribute("data-photo");
-        $$(".seg [data-photo]").forEach(function (x) {
-          x.classList.toggle("is-active", x.getAttribute("data-photo") === state.photo);
-        });
-        renderArt();
-      };
-    } else if (tool === "text") {
-      sheetBody.oninput = function (e) {
-        const inp = e.target.closest("[data-field]");
-        if (!inp) return;
-        state[inp.getAttribute("data-field")] = inp.value;
-        renderArt();
-      };
-    } else if (tool === "style") {
-      sheetBody.onclick = function (e) {
-        const card = e.target.closest("[data-theme]");
-        if (!card) return;
-        state.themeId = card.getAttribute("data-theme");
-        syncThemeSelection();
-        renderArt();
-      };
-    }
-  }
-
-  /* ---------- export screen ---------- */
-
-  $("#ratioSeg").addEventListener("click", function (e) {
-    const b = e.target.closest("[data-ratio]");
+  ul.onclick = e => {
+    const b = e.target.closest("[data-id]");
     if (!b) return;
-    state.ratio = b.getAttribute("data-ratio");
-    $$(".ratio").forEach(function (r) {
-      const on = r.getAttribute("data-ratio") === state.ratio;
-      r.classList.toggle("is-active", on);
-      r.setAttribute("aria-checked", on ? "true" : "false");
-    });
-    fitStages();
-  });
-
-  /* ---------- generate overlay ---------- */
-
-  const genlay = $("#genlay");
-  const genPhaseProgress = $(".gen-progress");
-  const genPhaseDone = $(".gen-done");
-  const genBarFill = $("#genBarFill");
-  const genStep = $("#genStep");
-  let lastBlob = null;
-
-  function showGenlay() {
-    genlay.hidden = false;
-    genPhaseProgress.hidden = false;
-    genPhaseDone.hidden = true;
-    genBarFill.style.width = "0%";
-
-    const steps = [
-      ["COMPOSING LAYOUT…", 22],
-      ["DRAWING ROUTE…", 48],
-      ["SETTING TYPE…", 72],
-      ["APPLYING " + D.themes[state.themeId].label + "…", 90],
-      ["FINALISING " + D.ratios[state.ratio].w + "×" + D.ratios[state.ratio].h + "…", 100]
-    ];
-    let i = 0;
-    (function next() {
-      if (i < steps.length) {
-        genStep.textContent = steps[i][0];
-        genBarFill.style.width = steps[i][1] + "%";
-        i++;
-        setTimeout(next, 420);
-      } else {
-        finishGenerate();
-      }
-    })();
-  }
-
-  async function finishGenerate() {
-    try {
-      lastBlob = await D.exporter.toBlob(state, state.ratio);
-    } catch (e) {
-      lastBlob = null;
-    }
-    genStep.textContent = "READY";
-    setTimeout(function () {
-      genPhaseProgress.hidden = true;
-      genPhaseDone.hidden = false;
-      const gs = $("#genStage");
-      gs.style.aspectRatio = String(D.ratios[state.ratio].css);
-      D.art.mount(gs, state);
-      $("#genFile").textContent = D.exporter.fileName(state, state.ratio);
-    }, 260);
-  }
-
-  function hideGenlay() {
-    if (genlay.hidden) return;
-    genlay.hidden = true;
-  }
-
-  $("#btnGenerate").addEventListener("click", showGenlay);
-  $("#btnGenClose").addEventListener("click", hideGenlay);
-
-  genlay.addEventListener("click", function (e) {
-    if (e.target === genlay) hideGenlay();
-  });
-
-  $("#btnSaveImg").addEventListener("click", async function () {
-    const blob = lastBlob || (await D.exporter.toBlob(state, state.ratio));
-    if (!blob) {
-      toast("RENDER FAILED — TRY AGAIN");
-      return;
-    }
-    if (window.MileMotion && typeof window.MileMotion.saveImage === "function") {
-      const b64 = await new Promise(function (res) {
-        const fr = new FileReader();
-        fr.onload = function () { res(String(fr.result).split(",")[1]); };
-        fr.readAsDataURL(blob);
-      });
-      window.MileMotion.saveImage(b64, D.exporter.fileName(state, state.ratio));
-      toast("IMAGE SAVED");
-      return;
-    }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = D.exporter.fileName(state, state.ratio);
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
-    toast("IMAGE SAVED");
-  });
-
-  $("#btnShare").addEventListener("click", async function () {
-    const blob = lastBlob || (await D.exporter.toBlob(state, state.ratio));
-    if (!blob) { toast("RENDER FAILED — TRY AGAIN"); return; }
-    const file = new File([blob], D.exporter.fileName(state, state.ratio), { type: "image/png" });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: "MileMotion", text: "Your run. Your story." });
-        toast("SHARED");
-        return;
-      } catch (e) {
-        if (e && e.name === "AbortError") return;
-      }
-    }
-    toast("SHARE SHEET — MOCKED IN DEMO");
-  });
-
-  /* ---------- init ---------- */
-
-  $("#themeActName").textContent = getActivity().name;
-  buildThemeRail();
-  renderArt();
+    state.activityId = b.dataset.id;
+    $("#themeActName").textContent = act().name;
+    buildThemeRail();          // preview cards show the new route
+    render();
+    show("themes");
+  };
+  $("#actCount").textContent = String(D.activities.length).padStart(2, "0");
 })();
+
+/* ---------------------------------------------------------------------
+ * 5. THEME RAIL — little poster previews for each style.
+ *    Also reused (smaller) inside the Style panel.
+ * ------------------------------------------------------------------- */
+function buildThemeRail() {
+  const rail = $("#themeRail");
+  rail.innerHTML = D.THEME_ORDER.map(k =>
+    `<button class="theme-card" data-theme="${k}"><div class="theme-frame stage" data-mini="${k}"></div><span class="theme-label">${D.themes[k].label}</span></button>`).join("");
+  D.THEME_ORDER.forEach(k => D.art.mount(rail.querySelector(`[data-mini="${k}"]`), { ...state, themeId: k }));
+  rail.onclick = e => { const c = e.target.closest("[data-theme]"); if (c) { state.themeId = c.dataset.theme; syncTheme(); render(); } };
+  syncTheme();
+}
+
+function syncTheme() {
+  $$("[data-theme]").forEach(c => c.classList.toggle("is-active", c.dataset.theme === state.themeId));
+}
+
+/* ---------------------------------------------------------------------
+ * 6. EDITOR STAGE SIZING — keeps the poster exactly the export shape.
+ * ------------------------------------------------------------------- */
+function fit(el, box) {
+  const s = getComputedStyle(box);
+  const w = box.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+  const h = box.clientHeight - parseFloat(s.paddingTop) - parseFloat(s.paddingBottom);
+  if (w <= 0 || h <= 0) return;
+  const r = D.RATIOS[state.ratio].css;
+  let H = h, W = H * r;
+  if (W > w) { W = w; H = W / r; }
+  el.style.cssText = `width:${W}px;height:${H}px`;
+}
+function fitStages() { fit(stages.editor, $("#editorStageBox")); fit(stages.export, $("#exportStageBox")); }
+new ResizeObserver(fitStages).observe($("#editorStageBox"));
+new ResizeObserver(fitStages).observe($("#exportStageBox"));
+
+/* ---------------------------------------------------------------------
+ * 7. EDITOR BOTTOM SHEET — slides up to reveal each tool's options.
+ * ------------------------------------------------------------------- */
+const sheet = $("#sheetBody");
+let openTool = null;
+
+function openSheet(name) {
+  openTool = name;
+  sheet.innerHTML = `<div class="panel">` + PANELS[name]() + `</div>`;
+  wire(sheet, name);
+  $("#sheetWrap").hidden = false;
+  requestAnimationFrame(() => $("#sheetWrap").classList.add("open")); // 1 frame wait so CSS can animate
+  $$(".tool").forEach(t => t.classList.toggle("is-active", t.dataset.tool === name));
+}
+function closeSheet() {
+  if ($("#sheetWrap").hidden) return;
+  $("#sheetWrap").classList.remove("open");
+  openTool = null;
+  setTimeout(() => { $("#sheetWrap").hidden = true; sheet.innerHTML = ""; }, 340); // wait for slide-down
+  $$(".tool").forEach(t => t.classList.remove("is-active"));
+}
+$("#toolbar").onclick = e => { const b = e.target.closest(".tool"); if (!b) return; b.dataset.tool === openTool ? closeSheet() : openSheet(b.dataset.tool); };
+$("#sheetScrim").onclick = closeSheet;
+document.onkeydown = e => { if (e.key === "Escape") { closeSheet(); hideGen(); } };
+
+/* The four panels (each returns HTML; wire() attaches their handlers). */
+const toggle = (key, label, on) =>
+  `<div class="opt-row"><span class="opt-label">${label}</span><button class="switch${on ? " is-on" : ""}" data-toggle="${key}" role="switch" aria-checked="${on}"></button></div>`;
+
+const PANELS = {
+  stats: () => D.STAT_META.map(m => toggle(m.key, m.label, state.options.stats[m.key])).join("") +
+          toggle("route", "ROUTE LINE", state.options.route) + toggle("date", "DATE", state.options.date),
+
+  photo: () => '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:14px">' +
+    ["none", "top", "bottom"].map(v =>
+      `<button class="seg-btn${state.photo === v ? " is-active" : ""}" data-photo="${v}">${v.toUpperCase()}</button>`).join("") +
+    "</div>",
+
+  text: () =>
+    `<label class="field"><span>HEADLINE</span><input data-field="headline" value="${state.headline}" placeholder="${act().name}"></label>` +
+    `<label class="field"><span>LOCATION</span><input data-field="location" value="${state.location}" placeholder="${act().place}"></label>`,
+
+  style: () => D.THEME_ORDER.map(k =>
+      `<button class="style-card" data-theme="${k}"><div class="style-frame stage" data-mini2="${k}"></div><span class="style-name">${D.themes[k].label}</span></button>`).join("")
+};
+
+function wire(el, name) {
+  if (name === "stats")   el.onclick = e => { const b = e.target.closest("[data-toggle]"); if (!b) return; const k = b.dataset.toggle; const v = k === "route" ? state.options.route = !state.options.route : k === "date" ? state.options.date = !state.options.date : state.options.stats[k] = !state.options.stats[k]; b.classList.toggle("is-on", v); render(); };
+  if (name === "photo")   el.onclick = e => { const b = e.target.closest("[data-photo]"); if (!b) return; state.photo = b.dataset.photo; $$(".seg-btn").forEach(x => x.classList.toggle("is-active", x.dataset.photo === state.photo)); render(); };
+  if (name === "text")    el.oninput  = e => { const b = e.target.closest("[data-field]"); if (!b) return; state[b.dataset.field] = b.value; render(); };
+  if (name === "style") { // mount small previews, then handle clicks
+    D.THEME_ORDER.forEach(k => D.art.mount(el.querySelector(`[data-mini2="${k}"]`), { ...state, themeId: k }));
+    el.onclick = e => { const c = e.target.closest("[data-theme]"); if (!c || !c.dataset.theme) return; state.themeId = c.dataset.theme; syncTheme(); render(); };
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * 8. EXPORT — choose ratio, then GENERATE draws a real PNG.
+ * ------------------------------------------------------------------- */
+$("#ratioSeg").onclick = e => { const b = e.target.closest("[data-ratio]"); if (!b) return; state.ratio = b.dataset.ratio; $$(".ratio").forEach(r => r.classList.toggle("is-active", r.dataset.ratio === state.ratio)); fitStages(); };
+
+/* ---------------------------------------------------------------------
+ * 9. GENERATE OVERLAY — fake "rendering" progress, then real PNG screen.
+ * ------------------------------------------------------------------- */
+let lastBlob = null;
+function showGen() {
+  $("#genlay").hidden = false;
+  $(".gen-progress").hidden = false;
+  $(".gen-done").hidden = true;
+  $("#genBar").style.width = "0%";
+  // Animate a progress bar for feel, then actually render the PNG.
+  let p = 0;
+  const tick = setInterval(() => { p = Math.min(100, p + 18); $("#genBar").style.width = p + "%"; if (p >= 100) { clearInterval(tick); finishGen(); } }, 150);
+}
+async function finishGen() {
+  try { lastBlob = await D.exporter.toBlob(state, state.ratio); } catch (e) { lastBlob = null; }
+  setTimeout(() => {
+    $(".gen-progress").hidden = true;
+    $(".gen-done").hidden = false;
+    D.art.mount($("#genStage"), state);
+    $("#genFile").textContent = D.exporter.fileName(state, state.ratio);
+  }, 220);
+}
+function hideGen() { $("#genlay").hidden = true; }
+$("#btnGenerate").onclick = showGen;
+$("#btnGenClose").onclick = hideGen;
+$("#genlay").onclick = e => { if (e.target.id === "genlay") hideGen(); };
+
+/* SAVE — on Android send bytes to the native bridge; on web trigger download */
+$("#btnSaveImg").onclick = async () => {
+  const blob = lastBlob || await D.exporter.toBlob(state, state.ratio);
+  const name = D.exporter.fileName(state, state.ratio);
+  if (!blob) return toast("RENDER FAILED");
+  if (window.MileMotion?.saveImage) {                       // Android WebView
+    const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.readAsDataURL(blob); });
+    window.MileMotion.saveImage(b64, name);
+  } else {                                                  // normal browser
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: name });
+    a.click();
+  }
+  toast("IMAGE SAVED");
+};
+
+/* SHARE — uses the browser's native share sheet if available */
+$("#btnShare").onclick = async () => {
+  const blob = lastBlob || await D.exporter.toBlob(state, state.ratio);
+  if (!blob) return toast("RENDER FAILED");
+  const file = new File([blob], D.exporter.fileName(state, state.ratio), { type: "image/png" });
+  if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: "MileMotion", text: "Your run. Your story." }); toast("SHARED"); }
+  else toast("SHARE SHEET — MOCKED IN DEMO");
+};
+
+/* ---------------------------------------------------------------------
+ * 10. SMALL STUFF — clock + toast + home banner line.
+ * ------------------------------------------------------------------- */
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2000); }
+setInterval(() => { const n = new Date(); $("#sbTime").textContent = `${n.getHours()}:${String(n.getMinutes()).padStart(2, "0")}`; }, 30000);
+
+/* home banner: a faint route line behind the logo */
+(function homeLine() {
+  const pts = D.art.routePoints("home-hero", 10).map(p => ({ x: p.x, y: 14 + p.y * 1.7 }));
+  $("#homeTrail").setAttribute("d", D.art.toPath(pts));
+})();
+
+/* ---------------------------------------------------------------------
+ * 11. GO! — build everything once the page loads.
+ * ------------------------------------------------------------------- */
+$("#themeActName").textContent = act().name;
+buildThemeRail();
+render();
+})();
+

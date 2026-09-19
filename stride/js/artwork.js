@@ -1,269 +1,149 @@
-/* ============================================================
-   STRIDE · artwork.js — reusable artwork renderer.
-   One component renders every preview: theme cards, editor,
-   export stage. Skins come from CSS theme classes.
-   ============================================================ */
+/*
+ * =====================================================================
+ *  artwork.js — builds the running-poster as ordinary HTML
+ * =====================================================================
+ *
+ *  THE CORE IDEA
+ *  -------------
+ *  We draw the poster with HTML + CSS (not canvas) so it is easy to
+ *  read and to style. The same markup is used in 3 places:
+ *
+ *     1. the little theme preview cards
+ *     2. the big editor preview
+ *     3. the export preview
+ *
+ *  `mount(container, state)` takes a <div> and fills it with the poster.
+ *  The `state` object passed in decides WHAT goes on the poster
+ *  (which activity, which theme, which stats are switched on, etc).
+ *
+ *  The theme's "look" (colors, background, decorations) lives in the
+ *  CSS classes `.th-bw`, `.th-midnight`, ... — see app.css.
+ *
+ *  `exportCanvas` in exporter.js re-draws the SAME layout onto a real
+ *  1080px canvas when you press GENERATE. Don't worry about that now.
+ * =====================================================================
+ */
 
+/* Wrap everything in a function so our variables stay private and do
+   not clash with the other files that also use names like `D`. */
 (function () {
-  "use strict";
+"use strict";
 
-  const D = window.STRIDE;
+const { STRIDE: D } = window;
 
-  /* ---------- seeded rng ---------- */
+/* ---------------------------------------------------------------------
+ * Maths helpers
+ * -------------
+ *  - mulberry32 : a tiny "random" number generator that always returns
+ *                 the same numbers for the same seed. This keeps the
+ *                 squiggly route line identical every visit instead of
+ *                 changing on every page load.
+ *  - routePoints / toPath : build a smooth running-route line.
+ * ------------------------------------------------------------------- */
+const mulberry32 = seed => () => {
+  seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
 
-  function mulberry32(seed) {
-    let a = seed >>> 0;
-    return function () {
-      a |= 0;
-      a = (a + 0x6d2b79f5) | 0;
-      let t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
+const hashSeed = str => {
+  let h = 2166136261;
+  for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+};
+
+function routePoints(seedStr, n = 13) {
+  const rnd = mulberry32(hashSeed(seedStr));
+  const pts = [];
+  let y = 30;
+  for (let i = 0; i < n; i++) {
+    const x = 5 + (90 * i) / (n - 1);
+    y += (rnd() - 0.5) * 24;                 // drift up/down a bit
+    pts.push({ x, y: Math.max(12, Math.min(86, y)) });
+  }
+  return pts;
+}
+
+function toPath(pts) {
+  let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], mx = (a.x + b.x) / 2;
+    d += ` Q${a.x.toFixed(1)} ${a.y.toFixed(1)}, ${mx.toFixed(1)} ${b.y.toFixed(1)}`; // smooth corners
+  }
+  return d;
+}
+
+/* ---------------------------------------------------------------------
+ * Small building blocks for the poster HTML
+ * ------------------------------------------------------------------ */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const markSvg = '<svg class="mark" viewBox="0 0 32 32"><path d="M7 25 L17 7"/><path d="M15 25 L25 7"/></svg>';
+const photoSvg = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14"/><circle cx="9" cy="10.5" r="1.6"/><path d="M3 17l5.5-5L14 17l3.5-3.5L21 17"/></svg>';
+
+/* Each theme can add a small "decoration" (stars, grid, layout lines). */
+function decoration(themeId, seedStr) {
+  const rnd = mulberry32(hashSeed(seedStr));
+  const stars = () => Array.from({ length: 26 }, () =>
+    `<circle cx="${(rnd() * 100).toFixed(1)}" cy="${(rnd() * 100).toFixed(1)}" r="${(0.2 + rnd() * 0.3).toFixed(2)}" opacity="${(0.2 + rnd() * 0.6).toFixed(2)}"/>`).join("");
+
+  if (themeId === "midnight")  return `<div class="art-decor"><svg class="art-stars" viewBox="0 0 100 100" preserveAspectRatio="none">${stars()}</svg></div>`;
+  if (themeId === "bw-motion") return '<div class="art-decor"><span class="slash"></span><span class="slash s2"></span></div>';
+  if (themeId === "blueprint") return '<div class="art-decor"><div class="frame"></div><span class="coords">30.27° N&nbsp;&nbsp;77.08° E</span></div>';
+  return ""; // minimal + topo get their looks purely from CSS
+}
+
+function photoFrame(bottom) {
+  return `<figure class="art-photo${bottom ? " is-bottom" : ""}">${photoSvg}<figcaption>ADD PHOTO</figcaption></figure>`;
+}
+
+/* ---------------------------------------------------------------------
+ * THE MAIN FUNCTION — turns `state` into poster HTML string
+ * ------------------------------------------------------------------ */
+function markup(state) {
+  const act = D.activities.find(a => a.id === state.activityId);
+  const cls = D.themes[state.themeId].cls;
+  const opt = state.options;
+
+  const title = (state.headline || act.name);
+  const sub   = [state.location || act.place, ...(opt.date ? [act.date] : [])].join("  ·  ");
+
+  // Pick which stat becomes the big headline number: distance > time > pace > first on
+  const visible = D.STAT_META.filter(m => opt.stats[m.key]);
+  const heroKey = ["distance", "time", "pace"].find(k => opt.stats[k]) || visible[0]?.key;
+  const hero = act.stats[heroKey];
+
+  let html = `<div class="art ${cls}">`;
+  html += decoration(state.themeId, act.id);
+
+  if (state.photo === "top") html += photoFrame(false);
+
+  html += `<header class="art-head"><h2 class="art-title">${esc(title)}</h2><p class="art-sub">${esc(sub)}</p></header>`;
+
+  if (hero) html +=
+    `<div class="art-hero"><span class="art-hero-value">${esc(hero.value)}</span><span class="art-hero-unit">${esc(hero.unit)}</span></div>`;
+
+  const rows = visible.filter(m => m.key !== heroKey);
+  if (rows.length) html += `<ul class="art-stats">` +
+    rows.map(m => `<li><span class="k">${esc(m.label)}</span><span class="v">${esc(act.stats[m.key].value)}<span class="u">${esc(act.stats[m.key].unit)}</span></span></li>`).join("") +
+    `</ul>`;
+
+  if (opt.route) {
+    const pts = routePoints("run-" + act.id);
+    html += `<svg class="art-route" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><path d="${toPath(pts)}"/><circle class="rt-start" cx="${pts[0].x}" cy="${pts[0].y}" r="1.9"/><circle class="rt-end" cx="${pts[pts.length - 1].x}" cy="${pts[pts.length - 1].y}" r="1.9"/></svg>`;
   }
 
-  function seedFrom(str) {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    return h >>> 0;
-  }
+  if (state.photo === "bottom") html += photoFrame(true);
 
-  /* ---------- geometry ---------- */
+  html += `<footer class="art-foot"><span class="art-brand">${markSvg}MILEMOTION</span><span class="art-tag">YOUR RUN. YOUR STORY.</span></footer></div>`;
 
-  function routePoints(seedStr, n) {
-    n = n || 13;
-    const rnd = mulberry32(seedFrom(seedStr));
-    const pts = [];
-    let y = 22 + rnd() * 30;
-    let vy = 0;
-    for (let i = 0; i < n; i++) {
-      const x = 5 + (90 * i) / (n - 1) + (rnd() - 0.5) * 5;
-      vy += (rnd() - 0.5) * 16;
-      vy *= 0.72;
-      y += vy;
-      if (y < 10) { y = 10 + rnd() * 6; vy = Math.abs(vy); }
-      if (y > 88) { y = 88 - rnd() * 6; vy = -Math.abs(vy); }
-      pts.push({ x: x, y: y });
-    }
-    return pts;
-  }
+  return html;
+}
 
-  function catmullPath(pts, closed) {
-    const n = pts.length;
-    function pt(i) {
-      if (closed) return pts[(i + n) % n];
-      return pts[Math.max(0, Math.min(n - 1, i))];
-    }
-    function f(v) { return v.toFixed(1); }
-    let d = `M ${f(pts[0].x)} ${f(pts[0].y)}`;
-    const last = closed ? n : n - 1;
-    for (let i = 0; i < last; i++) {
-      const p0 = pt(i - 1), p1 = pt(i), p2 = pt(i + 1), p3 = pt(i + 2);
-      const c1x = p1.x + (p2.x - p0.x) / 6;
-      const c1y = p1.y + (p2.y - p0.y) / 6;
-      const c2x = p2.x - (p3.x - p1.x) / 6;
-      const c2y = p2.y - (p3.y - p1.y) / 6;
-      d += ` C ${f(c1x)} ${f(c1y)}, ${f(c2x)} ${f(c2y)}, ${f(p2.x)} ${f(p2.y)}`;
-    }
-    if (closed) d += " Z";
-    return d;
-  }
+/* Fill a <div> with the poster. This is what the app calls. */
+function mount(el, state) {
+  el.innerHTML = markup(state);
+}
 
-  function routeD(activityId) {
-    return catmullPath(routePoints("stride-" + activityId), false);
-  }
-
-  function blobPath(rnd, cx, cy, r, wobble) {
-    const k = 9;
-    const pts = [];
-    for (let i = 0; i < k; i++) {
-      const ang = (Math.PI * 2 * i) / k + rnd() * 0.25;
-      const rr = r * (1 - wobble / 2 + rnd() * wobble);
-      pts.push({ x: cx + Math.cos(ang) * rr, y: cy + Math.sin(ang) * rr * 0.82 });
-    }
-    return catmullPath(pts, true);
-  }
-
-  /* ---------- esc ---------- */
-
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  }
-
-  /* ---------- decorations per theme ---------- */
-
-  const MARK_SVG =
-    '<svg class="mark" viewBox="0 0 32 32" aria-hidden="true">' +
-    '<path d="M7 25 L17 7"/><path d="M15 25 L25 7"/></svg>';
-
-  const PHOTO_ICON =
-    '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-    '<rect x="3" y="5" width="18" height="14"/>' +
-    '<circle cx="9" cy="10.5" r="1.6"/>' +
-    '<path d="M3 17l5.5-5L14 17l3.5-3.5L21 17"/></svg>';
-
-  function decorFor(themeKey, activityId) {
-    if (themeKey === "bw-motion") {
-      return (
-        '<div class="art-decor">' +
-        '<div class="speedlines"></div>' +
-        '<span class="slash s1"></span>' +
-        '<span class="slash s2"></span>' +
-        "</div>"
-      );
-    }
-    if (themeKey === "midnight") {
-      const rnd = mulberry32(seedFrom("stars-" + activityId));
-      let dots = "";
-      for (let i = 0; i < 26; i++) {
-        const twinkle = i % 5 === 0;
-        dots +=
-          `<circle cx="${(rnd() * 100).toFixed(1)}" cy="${(rnd() * 100).toFixed(1)}" ` +
-          `r="${(0.18 + rnd() * 0.34).toFixed(2)}" ` +
-          `opacity="${(0.2 + rnd() * 0.65).toFixed(2)}"` +
-          (twinkle ? ` class="tw" style="animation-delay:${(rnd() * 3).toFixed(1)}s"` : "") +
-          "/>";
-      }
-      return `<div class="art-decor"><svg class="art-stars" viewBox="0 0 100 100" preserveAspectRatio="none">${dots}</svg></div>`;
-    }
-    if (themeKey === "blueprint") {
-      return (
-        '<div class="art-decor">' +
-        '<div class="frame"></div>' +
-        '<span class="coords">47.21° N&nbsp;&nbsp;08.54° E</span>' +
-        "</div>"
-      );
-    }
-    if (themeKey === "topo") {
-      const rnd = mulberry32(seedFrom("topo-" + activityId));
-      const cx = 74, cy = 26, r = 34;
-      let paths = "";
-      [1, 0.76, 0.54, 0.34].forEach(function (s, i) {
-        paths += `<path d="${blobPath(rnd, cx, cy, r * s, 0.42)}"/>`;
-      });
-      paths += '<text class="idx" x="70" y="27">112</text>';
-      return `<div class="art-decor"><svg class="art-contours" viewBox="0 0 100 100" preserveAspectRatio="none">${paths}</svg></div>`;
-    }
-    return "";
-  }
-
-  /* ---------- main renderer ---------- */
-
-  function artworkMarkup(state) {
-    const act = D.activities.find(function (a) { return a.id === state.activityId; });
-    const th = D.themes[state.themeId];
-    const o = state.options;
-
-    const title = (state.headline || "").trim() || act.name;
-    const subParts = [];
-    if ((state.location || "").trim()) subParts.push(state.location.trim().toUpperCase());
-    else if (act.location) subParts.push(act.location);
-    if (o.date) subParts.push(act.dateLabel);
-
-    // hero metric: distance > time > pace > first visible
-    const visibleKeys = D.statMeta.filter(function (m) { return o.stats[m.key]; }).map(function (m) { return m.key; });
-    const heroKey = ["distance", "time", "pace"].find(function (k) { return visibleKeys.indexOf(k) !== -1; }) || visibleKeys[0];
-
-    let html = `<div class="art ${th.cls}" role="img" aria-label="Running poster">`;
-    html += decorFor(state.themeId, act.id);
-
-    if (state.photo && state.photo !== "none" && state.photo !== "bottom") {
-      html += photoSlot(false);
-    }
-
-    html += `<header class="art-head"><h2 class="art-title">${esc(title)}</h2>`;
-    if (subParts.length) html += `<p class="art-sub">${esc(subParts.join("  ·  "))}</p>`;
-    html += "</header>";
-
-    if (heroKey) {
-      const meta = D.statMeta.find(function (m) { return m.key === heroKey; });
-      const v = act.stats[heroKey];
-      html +=
-        '<div class="art-hero">' +
-        '<div class="art-hero-row">' +
-        `<span class="art-hero-value">${esc(v.value)}</span>` +
-        (v.unit ? `<span class="art-hero-unit">${esc(v.unit)}</span>` : "") +
-        "</div>" +
-        `<span class="art-hero-cap">${esc(meta.label)}</span>` +
-        "</div>";
-    }
-
-    const listKeys = visibleKeys.filter(function (k) { return k !== heroKey; });
-    if (listKeys.length) {
-      html += '<ul class="art-stats">';
-      listKeys.forEach(function (k) {
-        const meta = D.statMeta.find(function (m) { return m.key === k; });
-        const v = act.stats[k];
-        html +=
-          "<li>" +
-          `<span class="k">${esc(meta.label)}</span>` +
-          `<span class="v">${esc(v.value)}${v.unit ? `<span class="u">${esc(v.unit)}</span>` : ""}</span>` +
-          "</li>";
-      });
-      html += "</ul>";
-    }
-
-    if (state.options.route) {
-      const pts = routePoints("stride-" + act.id);
-      const d = catmullPath(pts, false);
-      const first = pts[0], last = pts[pts.length - 1];
-      let extras = "";
-      if (state.themeId === "topo") {
-        pts.forEach(function (p, i) {
-          if (i % 4 === 2 && i < pts.length - 1) {
-            extras += `<circle class="wp" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="1.5"/>`;
-          }
-        });
-      }
-      html +=
-        '<svg class="art-route" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
-        `<path d="${d}"/>` +
-        extras +
-        `<circle class="rt-start" cx="${first.x.toFixed(1)}" cy="${first.y.toFixed(1)}" r="1.9"/>` +
-        `<circle class="rt-end" cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="1.9"/>` +
-        "</svg>";
-    } else {
-      html += '<div class="art-route" style="min-height:2cqw"></div>';
-    }
-
-    if (state.photo === "bottom") {
-      html += photoSlot(true);
-    }
-
-    html +=
-      '<footer class="art-foot">' +
-      `<span class="art-brand">${MARK_SVG}MILEMOTION</span>` +
-      '<span class="art-tag">YOUR RUN. YOUR STORY.</span>' +
-      "</footer>";
-
-    html += "</div>";
-    return html;
-  }
-
-  function photoSlot(bottom) {
-    return `<figure class="art-photo${bottom ? " is-bottom" : ""}">${PHOTO_ICON}<figcaption>ADD PHOTO</figcaption></figure>`;
-  }
-
-  function mountArtwork(el, state) {
-    el.innerHTML = artworkMarkup(state);
-  }
-
-  /* ---------- export ---------- */
-
-  window.STRIDE.art = {
-    markup: artworkMarkup,
-    mount: mountArtwork,
-    routeD: routeD,
-    routePoints: routePoints,
-    catmullPath: catmullPath,
-    blobPath: blobPath,
-    mulberry32: mulberry32,
-    seedFrom: seedFrom,
-    MARK_SVG: MARK_SVG
-  };
+window.STRIDE.art = { mount, markup, routePoints, toPath, mulberry32, hashSeed };
 })();
